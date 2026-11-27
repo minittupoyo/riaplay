@@ -185,6 +185,17 @@ export class SubsonicClient {
     await this.call(on ? "star" : "unstar", { [key]: id });
   }
 
+  /** サーバーが持つ歌詞（OpenSubsonic の getLyricsBySongId）。未対応のサーバーや歌詞なしは空配列 */
+  async getLyricsBySongId(id: string): Promise<{ synced: boolean; lines: { start?: number; value: string }[] }[]> {
+    try {
+      const r = await this.call("getLyricsBySongId", { id });
+      return r.lyricsList?.structuredLyrics ?? [];
+    } catch (e) {
+      if (e instanceof NetworkError) throw e;
+      return [];
+    }
+  }
+
   /** offset: トランスコード時のシーク位置（秒）。変換ストリームはバイト範囲で飛べないのでサーバー側で頭出しする */
   streamUrl(id: string, offset = 0): string {
     const kbps = settings().maxBitRate; // 0 = 原音。指定時はサーバー側でトランスコードされる

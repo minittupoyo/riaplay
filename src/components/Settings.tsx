@@ -87,7 +87,7 @@ export default function Settings() {
         </Section>
 
         <Section title="歌詞">
-          <Row title="歌詞を取得する" desc="LRCLIB（lrclib.net）から取得します。オンにすると、再生中の曲名・アーティスト名・アルバム名・再生時間が LRCLIB に送信されます。">
+          <Row title="歌詞を取得する" desc="サーバー、LRCLIB（lrclib.net）、NetEase Cloud Music の順に探します。オンにすると、再生中の曲名・アーティスト名・アルバム名・再生時間が LRCLIB と NetEase Cloud Music に送信されます。">
             <Toggle label="歌詞を取得する" value={s().lyricsEnabled} onChange={(v) => updateSettings({ lyricsEnabled: v })} />
           </Row>
           <Row title="ぼかし" desc="同期歌詞で、現在の行から離れた行をぼかす強さ。">
@@ -140,7 +140,7 @@ export default function Settings() {
           <Row title="riaplay" desc="Navidrome 用のクライアント">
             <span class="text-sm text-white/50 tabular-nums">バージョン {version()}</span>
           </Row>
-          <Row title="歌詞提供" desc="歌詞は LRCLIB（https://lrclib.net）から取得しています。">
+          <Row title="歌詞提供" desc="歌詞は、サーバー、LRCLIB（https://lrclib.net）、NetEase Cloud Music から取得しています。">
             <span />
           </Row>
           <Row title="設定を初期化" desc="再生品質・歌詞・外観の設定を初期値に戻します（登録済みのサーバーは変わりません）。">

@@ -5,6 +5,7 @@ import { LyricsAnimator, type LyricLine } from "../lyricsAnimator";
 import { setLyricsOpen } from "../store";
 import { fetchLyrics } from "../lyrics";
 import { settings } from "../settings";
+import type { SubsonicClient } from "../api";
 
 const INTRO_MIN = 4; // 最初の行までこの秒数以上あれば、冒頭に間奏を表示する
 
@@ -24,10 +25,10 @@ function toView(synced: { time: number; text: string }[] | null | undefined): Vi
 }
 
 /** embedded: 再生中画面の中に置く。幅は親に任せ、見出しと閉じるボタンは出さない */
-export default function LyricsPanel(props: { ref?: (e: HTMLElement) => void; overlay?: boolean; embedded?: boolean }) {
+export default function LyricsPanel(props: { client: SubsonicClient; ref?: (e: HTMLElement) => void; overlay?: boolean; embedded?: boolean }) {
   const [lyrics] = createResource(
-    () => (settings().lyricsEnabled ? current() : undefined), // 設定でオフなら LRCLIB へ問い合わせない
-    (s) => fetchLyrics(s),
+    () => (settings().lyricsEnabled ? current() : undefined), // 設定でオフなら外部へ問い合わせない
+    (s) => fetchLyrics(s, props.client),
   );
 
   const view = createMemo(() => toView(lyrics()?.synced));
@@ -97,7 +98,7 @@ export default function LyricsPanel(props: { ref?: (e: HTMLElement) => void; ove
                     fallback={
                       <Show when={l().plain} fallback={<p class={msg}>{l().instrumental ? "インストゥルメンタル" : "歌詞がありません"}</p>}>
                         <p class="whitespace-pre-wrap text-[15px] leading-8 text-white/80">{l().plain}</p>
-                        <p class={`${credit} pt-4 pb-8`}>歌詞提供: LRCLIB</p>
+                        <p class={`${credit} pt-4 pb-8`}>歌詞提供: {l().source}</p>
                       </Show>
                     }
                   >
@@ -118,7 +119,7 @@ export default function LyricsPanel(props: { ref?: (e: HTMLElement) => void; ove
                             </li>
                           )}
                         </For>
-                        <li class={`${credit} pt-6 pb-[35vh]`}>歌詞提供: LRCLIB</li>
+                        <li class={`${credit} pt-6 pb-[35vh]`}>歌詞提供: {l().source}</li>
                       </ul>
                     )}
                   </Show>

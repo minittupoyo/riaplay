@@ -305,7 +305,7 @@ export default function Library(props: { client: SubsonicClient; offline?: boole
         </main>
 
         <Show when={queuePresent()}><QueuePanel ref={queueRef} client={props.client} overlay={narrow()} /></Show>
-        <Show when={lyricsPresent()}><LyricsPanel ref={lyricsRef} overlay={narrow()} /></Show>
+        <Show when={lyricsPresent()}><LyricsPanel client={props.client} ref={lyricsRef} overlay={narrow()} /></Show>
       </div>
       <PlayerBar client={props.client} />
       <Show when={npPresent()}><NowPlaying ref={npRef} client={props.client} /></Show>

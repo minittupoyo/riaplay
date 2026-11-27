@@ -7,7 +7,7 @@ export type BlurLevel = "off" | "weak" | "strong";
 export interface Settings {
   /** ストリーミングの最大ビットレート(kbps)。0 = 原音（変換しない） */
   maxBitRate: number;
-  /** LRCLIB から歌詞を取得する（曲名・アーティスト等が外部サービスへ送信される） */
+  /** 外部サービス（LRCLIB・NetEase）から歌詞を取得する（曲名・アーティスト等が外部サービスへ送信される） */
   lyricsEnabled: boolean;
   /** 同期歌詞で、現在行から離れた行をぼかす強さ */
   lyricsBlur: BlurLevel;

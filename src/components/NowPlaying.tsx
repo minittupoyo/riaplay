@@ -157,7 +157,7 @@ export default function NowPlaying(props: { client: SubsonicClient; ref?: (e: HT
               <div class={`min-h-0 min-w-0 flex flex-col ${narrow() ? "flex-1 w-full" : "flex-[6] h-full"}`}>
                 <Show when={narrow()}><Titles song={s()} compact /></Show>
                 <Show when={pane() === "lyrics"} fallback={<NowPlayingQueue client={props.client} />}>
-                  <div class="np-lyrics flex-1 min-h-0 flex flex-col"><LyricsPanel embedded /></div>
+                  <div class="np-lyrics flex-1 min-h-0 flex flex-col"><LyricsPanel client={props.client} embedded /></div>
                 </Show>
                 {/* ジャケットが無いときの最小限の操作 */}
                 <Show when={narrow()}>
