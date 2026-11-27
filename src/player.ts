@@ -1,4 +1,4 @@
-import { createEffect, createRoot, createSignal, on } from "solid-js";
+import { batch, createEffect, createRoot, createSignal, on } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Song, SubsonicClient } from "./api";
@@ -101,9 +101,12 @@ export function playQueue(c: SubsonicClient, songs: Song[], start = 0) {
   client = c;
   played.clear();
   history = [];
-  setIndex(-1);
-  setQueue(songs);
-  load(start);
+  // まとめて反映する。別々に更新すると、途中で「再生中の曲なし」の状態が一瞬見えて、プレイヤーバーなどが作り直される
+  batch(() => {
+    setIndex(-1);
+    setQueue(songs);
+    load(start);
+  });
 }
 
 export const toggle = () => {
@@ -225,10 +228,12 @@ export function clearQueue() {
 export function removeFromQueue(i: number) {
   if (queue().length <= 1) return clearQueue();
   const wasCurrent = i === index();
-  remap((j) => (j === i ? null : j > i ? j - 1 : j));
-  setQueue((q) => q.filter((_, k) => k !== i));
-  if (wasCurrent) load(Math.min(i, queue().length - 1), false);
-  else if (i < index()) setIndex(index() - 1);
+  batch(() => {
+    remap((j) => (j === i ? null : j > i ? j - 1 : j));
+    setQueue((q) => q.filter((_, k) => k !== i));
+    if (wasCurrent) load(Math.min(i, queue().length - 1), false);
+    else if (i < index()) setIndex(index() - 1);
+  });
 }
 
 export function moveInQueue(from: number, to: number) {
@@ -240,14 +245,16 @@ export function moveInQueue(from: number, to: number) {
     return i;
   };
   const cur = index();
-  remap(f);
-  setQueue((q) => {
-    const a = [...q];
-    const [x] = a.splice(from, 1);
-    a.splice(to, 0, x);
-    return a;
+  batch(() => {
+    remap(f);
+    setQueue((q) => {
+      const a = [...q];
+      const [x] = a.splice(from, 1);
+      a.splice(to, 0, x);
+      return a;
+    });
+    if (cur >= 0) setIndex(f(cur));
   });
-  if (cur >= 0) setIndex(f(cur));
 }
 
 // ---- OS 連携（Rust 側の souvlaki 経由。Linux は MPRIS、macOS / Windows は OS のメディアコントロール）----
