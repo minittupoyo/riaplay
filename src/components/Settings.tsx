@@ -3,6 +3,8 @@ import { IconCheck, IconPencil, IconPlus, IconTrash, IconServer } from "@tabler/
 import { ACCENTS, resetSettings, settings, updateSettings, type BlurLevel, type MotionMode } from "../settings";
 import { activeId, hostOf, removeServer, servers, setActive, setServerDialog } from "../servers";
 import { enter } from "../motion";
+import { clearLyricsCache } from "../lyrics";
+import { toast } from "../toast";
 import { firstShow } from "../firstShow";
 import { Row, Section, Segmented, Toggle } from "./controls";
 
@@ -94,6 +96,14 @@ export default function Settings() {
               options={[{ value: "off", label: "なし" }, { value: "weak", label: "弱" }, { value: "strong", label: "強" }]}
               onChange={(v) => updateSettings({ lyricsBlur: v })}
             />
+          </Row>
+          <Row title="歌詞のキャッシュ" desc="一度取得した歌詞は、この端末に保存して再利用します（見つからなかった曲は 7 日後に再確認します）。">
+            <button
+              class="rounded-lg bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
+              onClick={async () => { await clearLyricsCache(); toast("歌詞のキャッシュを削除しました"); }}
+            >
+              削除
+            </button>
           </Row>
         </Section>
 
