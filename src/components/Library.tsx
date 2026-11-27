@@ -19,6 +19,7 @@ import { animate, createPresence, enter, stagger } from "../motion";
 import { firstShow, resetFirstShow } from "../firstShow";
 import { playlistVersion, libraryVersion, reloadLibrary, refreshed, queueOpen, lyricsOpen, bp, openCreateDialog, nowPlayingOpen } from "../store";
 import { settings } from "../settings";
+import { openContextMenu } from "../contextMenu";
 import CreatePlaylistDialog from "./CreatePlaylistDialog";
 import ServerSwitcher from "./ServerSwitcher";
 
@@ -178,7 +179,8 @@ export default function Library(props: { client: SubsonicClient }) {
       <div class="flex-1 min-h-0 overflow-y-scroll space-y-0.5">
         <For each={playlists()}>
           {(p) => (
-            <button ref={(e) => enter(e, { y: 6, duration: 220 })} class={item(activePlaylist() === p.id, compact)} title={p.name} onClick={() => openPlaylist(p.id)}>
+            <button ref={(e) => enter(e, { y: 6, duration: 220 })} class={item(activePlaylist() === p.id, compact)} title={p.name} onClick={() => openPlaylist(p.id)}
+              onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openContextMenu({ x: e.clientX, y: e.clientY, client: props.client, songs: async () => (await props.client.getPlaylist(p.id)).songs }); }}>
               <IconPlaylist size={20} class={icon(activePlaylist() === p.id)} />
               <Show when={!compact}><span class="truncate">{p.name}</span></Show>
             </button>

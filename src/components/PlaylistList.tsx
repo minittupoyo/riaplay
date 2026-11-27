@@ -5,6 +5,7 @@ import { playQueue } from "../player";
 import { enter, hoverAnim, stagger } from "../motion";
 import { firstShow } from "../firstShow";
 import { openCreateDialog } from "../store";
+import { openContextMenu } from "../contextMenu";
 
 function PlaylistCard(props: { client: SubsonicClient; playlist: Playlist; i: number; onOpen: (id: string) => void }) {
   let cover!: HTMLDivElement;
@@ -28,6 +29,11 @@ function PlaylistCard(props: { client: SubsonicClient; playlist: Playlist; i: nu
       onMouseEnter={() => hover.forEach((h) => h.in())}
       onMouseLeave={() => hover.forEach((h) => h.out())}
       onClick={() => props.onOpen(props.playlist.id)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openContextMenu({ x: e.clientX, y: e.clientY, client: props.client, songs: async () => (await props.client.getPlaylist(props.playlist.id)).songs });
+      }}
     >
       <div class="relative">
         <div ref={cover} class="aspect-square rounded-lg bg-white/5 overflow-hidden flex items-center justify-center shadow-lg shadow-black/40">
