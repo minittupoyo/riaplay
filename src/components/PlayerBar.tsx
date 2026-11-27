@@ -6,7 +6,7 @@ import {
 } from "@tabler/icons-solidjs";
 import type { SubsonicClient } from "../api";
 import {
-  current, playing, time, duration, toggle, next, prev, seek,
+  current, playing, time, lastNavDirection, duration, toggle, next, prev, seek,
   shuffle, repeat, volume, muted, toggleShuffle, cycleRepeat, setVolume, toggleMute,
 } from "../player";
 import Slider from "./Slider";
@@ -46,8 +46,14 @@ export default function PlayerBar(props: { client: SubsonicClient }) {
   let info: HTMLElement | undefined;
   let playBtn: HTMLElement | undefined;
 
-  // 曲が変わったら曲情報をふわっと切り替える
-  createEffect(on(() => current()?.id, () => info && animate(info, [{ opacity: 0.2, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 320 }), { defer: true }));
+  // 曲が変わったら曲名・アーティスト名をふわっと切り替える（ジャケットは動かさない）
+  // 「次へ」なら右から、「前へ」なら左から入ってくる。それ以外（曲を選んだとき）は下からふわっと
+  createEffect(on(() => current()?.id, () => {
+    if (!info) return;
+    const dir = lastNavDirection();
+    const from = dir === "next" ? "translateX(28px)" : dir === "prev" ? "translateX(-28px)" : "translateY(6px)";
+    animate(info, [{ opacity: 0.2, transform: from }, { opacity: 1, transform: "none" }], { duration: dir ? 380 : 320, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+  }, { defer: true }));
   // 再生/一時停止でボタンをポンと弾ませる
   createEffect(on(playing, () => playBtn && animate(playBtn, [{ transform: "scale(.8)" }, { transform: "scale(1.08)", offset: 0.6 }, { transform: "scale(1)" }], { duration: 260, fill: "none" }), { defer: true }));
   // キューパネルの開閉に合わせて右端をなめらかに動かす
@@ -57,11 +63,11 @@ export default function PlayerBar(props: { client: SubsonicClient }) {
     <Show when={current()}>
       {(s) => (
         <footer ref={(e) => { footer = e; enter(e, { y: 28, duration: 420 }); }} class={`absolute ${left()} ${right()} bottom-4 h-[76px] rounded-2xl bg-neutral-800/70 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 grid items-center px-4 ${narrow() ? "grid-cols-[minmax(0,1fr)_auto_auto] gap-2" : "grid-cols-[1fr_minmax(0,1.4fr)_1fr] gap-4"}`}>
-          <div ref={(e) => (info = e)} class="flex items-center gap-3 min-w-0">
+          <div class="flex items-center gap-3 min-w-0">
             <Show when={s().coverArt} fallback={<div class="size-12 rounded-md bg-white/10" />}>
               <img src={props.client.coverUrl(s().coverArt, 100)} class="size-12 rounded-md object-cover shadow cursor-pointer" alt="" title="再生中画面を開く" onClick={() => setNowPlayingOpen(true)} />
             </Show>
-            <div class="min-w-0">
+            <div ref={(e) => (info = e)} class="min-w-0">
               <div class="text-sm font-medium truncate">{s().title}</div>
               <div class="text-xs text-white/50 truncate">{s().artist}</div>
             </div>

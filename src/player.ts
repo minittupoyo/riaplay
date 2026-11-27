@@ -80,9 +80,15 @@ function nextIndex(auto: boolean): number {
   return repeat() === "all" ? 0 : -1;
 }
 
-function load(i: number, record = true) {
+/** 直近の曲の切り替えが、どの操作によるものか。表示の切り替えアニメーションの向きに使う（それ以外は null） */
+export type NavDirection = "next" | "prev";
+let navDir: NavDirection | null = null;
+export const lastNavDirection = () => navDir;
+
+function load(i: number, record = true, dir: NavDirection | null = null) {
   const s = queue()[i];
   if (!s || !client) return;
+  navDir = dir;
   if (record && index() >= 0 && index() !== i) history.push(index());
   played.add(i);
   setIndex(i);
@@ -120,7 +126,7 @@ export const toggle = () => {
 
 export function next() {
   const n = nextIndex(false);
-  if (n >= 0) load(n);
+  if (n >= 0) load(n, true, "next");
 }
 
 export function prev() {
@@ -128,8 +134,8 @@ export function prev() {
     seek(0);
     return;
   }
-  if (shuffle() && history.length) load(history.pop()!, false);
-  else if (!shuffle() && index() > 0) load(index() - 1);
+  if (shuffle() && history.length) load(history.pop()!, false, "prev");
+  else if (!shuffle() && index() > 0) load(index() - 1, true, "prev");
   else seek(0);
 }
 
