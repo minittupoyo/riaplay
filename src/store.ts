@@ -39,6 +39,9 @@ export const panelOpen = createRoot(() => createMemo(() => queueOpen() || lyrics
 export const toggleQueue = () => { const o = !queueOpen(); setQueueOpen(o); if (o) setLyricsOpen(false); };
 export const toggleLyrics = () => { const o = !lyricsOpen(); setLyricsOpen(o); if (o) setQueueOpen(false); };
 
+// ウィンドウいっぱいの再生中画面
+export const [nowPlayingOpen, setNowPlayingOpen] = createSignal(false);
+
 // プレイリスト作成ダイアログ。songs を渡すと、作成と同時にその曲を追加する
 export interface CreatePlaylistRequest { songs?: () => Song[] | Promise<Song[]> }
 export const [createDialog, setCreateDialog] = createSignal<CreatePlaylistRequest | null>(null);

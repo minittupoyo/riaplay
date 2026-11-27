@@ -6,6 +6,7 @@ import ArtistDetail from "./ArtistDetail";
 import PlaylistDetail from "./PlaylistDetail";
 import QueuePanel from "./QueuePanel";
 import LyricsPanel from "./LyricsPanel";
+import NowPlaying from "./NowPlaying";
 import Search from "./Search";
 import PlayerBar from "./PlayerBar";
 import Favorites from "./Favorites";
@@ -16,7 +17,7 @@ import AlbumCard, { Cover } from "./AlbumCard";
 import { current } from "../player";
 import { animate, createPresence, enter, stagger } from "../motion";
 import { firstShow, resetFirstShow } from "../firstShow";
-import { playlistVersion, libraryVersion, reloadLibrary, refreshed, queueOpen, lyricsOpen, bp, openCreateDialog } from "../store";
+import { playlistVersion, libraryVersion, reloadLibrary, refreshed, queueOpen, lyricsOpen, bp, openCreateDialog, nowPlayingOpen } from "../store";
 import { settings } from "../settings";
 import CreatePlaylistDialog from "./CreatePlaylistDialog";
 import ServerSwitcher from "./ServerSwitcher";
@@ -124,6 +125,13 @@ export default function Library(props: { client: SubsonicClient }) {
     lyricsOpen,
     { keyframes: [{ width: "0px", opacity: 0 }, { width: "20rem", opacity: 1 }], options: { duration: 300 } },
     { keyframes: [{ width: "20rem", opacity: 1 }, { width: "0px", opacity: 0 }], options: { duration: 260 } },
+  );
+
+  // 再生中画面: ウィンドウ全体に重ねる
+  const [npPresent, npRef] = createPresence(
+    nowPlayingOpen,
+    { keyframes: [{ opacity: 0, transform: "translateY(32px)" }, { opacity: 1, transform: "none" }], options: { duration: 340 } },
+    { keyframes: [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(32px)" }], options: { duration: 260 } },
   );
 
   const item = (active: boolean, compact = false) =>
@@ -276,6 +284,7 @@ export default function Library(props: { client: SubsonicClient }) {
         <Show when={lyricsPresent()}><LyricsPanel ref={lyricsRef} overlay={narrow()} /></Show>
       </div>
       <PlayerBar client={props.client} />
+      <Show when={npPresent()}><NowPlaying ref={npRef} client={props.client} /></Show>
       <CreatePlaylistDialog client={props.client} onCreated={(p) => p && openPlaylist(p.id)} />
 
       <Show when={narrow() && drawerPresent()}>

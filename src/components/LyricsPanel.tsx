@@ -23,7 +23,8 @@ function toView(synced: { time: number; text: string }[] | null | undefined): Vi
   return out;
 }
 
-export default function LyricsPanel(props: { ref?: (e: HTMLElement) => void; overlay?: boolean }) {
+/** embedded: 再生中画面の中に置く。幅は親に任せ、見出しと閉じるボタンは出さない */
+export default function LyricsPanel(props: { ref?: (e: HTMLElement) => void; overlay?: boolean; embedded?: boolean }) {
   const [lyrics] = createResource(
     () => (settings().lyricsEnabled ? current() : undefined), // 設定でオフなら LRCLIB へ問い合わせない
     (s) => fetchLyrics(s),
@@ -70,14 +71,16 @@ export default function LyricsPanel(props: { ref?: (e: HTMLElement) => void; ove
   return (
     <aside
       ref={props.ref}
-      class={`w-80 shrink-0 overflow-hidden border-l flex flex-col ${props.overlay ? "absolute right-0 top-0 z-30 border-white/10 bg-[#262629] shadow-2xl shadow-black/60" : "border-white/5 bg-white/[0.04]"}`}
-      style={props.overlay ? { bottom: current() ? "6.5rem" : "0" } : undefined}
+      class={props.embedded ? "flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col" : `w-80 shrink-0 overflow-hidden border-l flex flex-col ${props.overlay ? "absolute right-0 top-0 z-30 border-white/10 bg-[#262629] shadow-2xl shadow-black/60" : "border-white/5 bg-white/[0.04]"}`}
+      style={!props.embedded && props.overlay ? { bottom: current() ? "6.5rem" : "0" } : undefined}
     >
-      <div class="w-80 flex-1 min-h-0 flex flex-col">
-        <div class="flex items-center justify-between px-4 pt-5 pb-3">
-          <h2 class="text-xl font-bold">歌詞</h2>
-          <button class="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10" onClick={() => setLyricsOpen(false)}><IconX size={18} /></button>
-        </div>
+      <div class={`${props.embedded ? "w-full" : "w-80"} flex-1 min-h-0 flex flex-col`}>
+        <Show when={!props.embedded} fallback={<div class="pt-4" />}>
+          <div class="flex items-center justify-between px-4 pt-5 pb-3">
+            <h2 class="text-xl font-bold">歌詞</h2>
+            <button class="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10" onClick={() => setLyricsOpen(false)}><IconX size={18} /></button>
+          </div>
+        </Show>
         <div ref={scroller} class="flex-1 overflow-y-scroll px-4">
           <Show when={current()} fallback={<p class={msg}>曲を再生すると歌詞が表示されます</p>}>
             <Show when={settings().lyricsEnabled} fallback={<p class={msg}>歌詞の取得がオフになっています。設定の「歌詞」から有効にできます。</p>}>

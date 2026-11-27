@@ -66,6 +66,18 @@ button:not(:disabled),
 }
 .lyric-line.active .lyric-text { transform: none; }
 
+/* 再生中画面の歌詞は、サイドパネルより大きく表示する */
+.np-lyrics .lyric-line { font-size: clamp(1.9rem, 3.4vw, 3.2rem); padding: 0.6rem 0; }
+.np-lyrics .lyric-dots i { width: 0.9rem; height: 0.9rem; }
+
+/* 再生中画面の歌詞・キュー: 上下の端を徐々に透明にして、切れ目を目立たなくする（下側は広めにとる） */
+/* 上側は固定の高さにして、同じ高さの余白を中身の先頭に入れる（先頭の項目がフェードに隠れないように） */
+.np-lyrics .overflow-y-scroll, .fade-y {
+  padding-top: 3rem;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 3rem, #000 calc(100% - clamp(2.5rem, 14%, 7rem)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 3rem, #000 calc(100% - clamp(2.5rem, 14%, 7rem)), transparent 100%);
+}
+
 /* 間奏は、その行に来たときだけ表示する（高さを滑らかに開閉して周囲の行が跳ねないようにする） */
 .lyric-line.interlude {
   display: grid;

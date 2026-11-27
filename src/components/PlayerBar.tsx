@@ -2,7 +2,7 @@ import { createEffect, createSignal, on, Show } from "solid-js";
 import { animate, createPresence, enter } from "../motion";
 import {
   IconPlayerPlayFilled, IconPlayerPauseFilled, IconPlayerSkipBackFilled, IconPlayerSkipForwardFilled,
-  IconArrowsShuffle, IconRepeat, IconRepeatOnce, IconVolume, IconVolume2, IconVolume3, IconListNumbers, IconQuote,
+  IconArrowsShuffle, IconRepeat, IconRepeatOnce, IconVolume, IconVolume2, IconVolume3, IconListNumbers, IconQuote, IconArrowsMaximize,
 } from "@tabler/icons-solidjs";
 import type { SubsonicClient } from "../api";
 import {
@@ -12,7 +12,7 @@ import {
 import Slider from "./Slider";
 import Heart from "./Heart";
 import AudioInfo from "./AudioInfo";
-import { queueOpen, lyricsOpen, panelOpen, toggleQueue, toggleLyrics, bp } from "../store";
+import { queueOpen, lyricsOpen, panelOpen, toggleQueue, toggleLyrics, bp, setNowPlayingOpen } from "../store";
 
 export const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
@@ -59,7 +59,7 @@ export default function PlayerBar(props: { client: SubsonicClient }) {
         <footer ref={(e) => { footer = e; enter(e, { y: 28, duration: 420 }); }} class={`absolute ${left()} ${right()} bottom-4 h-[76px] rounded-2xl bg-neutral-800/70 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/50 grid items-center px-4 ${narrow() ? "grid-cols-[minmax(0,1fr)_auto_auto] gap-2" : "grid-cols-[1fr_minmax(0,1.4fr)_1fr] gap-4"}`}>
           <div ref={(e) => (info = e)} class="flex items-center gap-3 min-w-0">
             <Show when={s().coverArt} fallback={<div class="size-12 rounded-md bg-white/10" />}>
-              <img src={props.client.coverUrl(s().coverArt, 100)} class="size-12 rounded-md object-cover shadow" alt="" />
+              <img src={props.client.coverUrl(s().coverArt, 100)} class="size-12 rounded-md object-cover shadow cursor-pointer" alt="" title="再生中画面を開く" onClick={() => setNowPlayingOpen(true)} />
             </Show>
             <div class="min-w-0">
               <div class="text-sm font-medium truncate">{s().title}</div>
@@ -95,6 +95,9 @@ export default function PlayerBar(props: { client: SubsonicClient }) {
           >
             <div class={`flex items-center gap-1 transition-opacity duration-200 ${volHover() ? "opacity-0 pointer-events-none" : ""}`}>
               <AudioInfo />
+              <button class={`p-2 rounded-full text-white/60 hover:text-white ${narrow() ? "hidden" : ""}`} title="再生中画面" onClick={() => setNowPlayingOpen(true)}>
+                <IconArrowsMaximize size={20} />
+              </button>
               <button class={`p-2 rounded-full ${lyricsOpen() ? "text-accent" : "text-white/60 hover:text-white"}`} title="歌詞" onClick={toggleLyrics}>
                 <IconQuote size={20} />
               </button>
