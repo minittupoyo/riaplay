@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Song, SubsonicClient } from "./api";
 import { settings } from "./settings";
-import { createEngine, type Engine } from "./engine";
+import { createEngine, type AudioInfo, type Engine } from "./engine";
 
 export type RepeatMode = "off" | "all" | "one";
 
@@ -16,6 +16,10 @@ const [shuffle, setShuffle] = createSignal(localStorage.getItem("riaplay.shuffle
 const [repeat, setRepeat] = createSignal<RepeatMode>((localStorage.getItem("riaplay.repeat") as RepeatMode) || "off");
 const [volume, setVolumeSig] = createSignal(Number(localStorage.getItem("riaplay.volume") ?? 1));
 const [muted, setMutedSig] = createSignal(localStorage.getItem("riaplay.muted") === "1");
+// 再生中ストリームの技術情報（libmpv のときだけ。<audio> フォールバックでは null のまま）
+const [audioInfo, setAudioInfo] = createSignal<AudioInfo | null>(null);
+// トランスコード中か（設定の最大ビットレートが有効）。load() で更新する
+const [isTranscoded, setIsTranscoded] = createSignal(false);
 let client: SubsonicClient | null = null;
 
 // シャッフル用: 再生済みインデックスと戻る用の履歴
@@ -23,7 +27,7 @@ const played = new Set<number>();
 let history: number[] = [];
 
 export const current = () => queue()[index()];
-export { queue, index, playing, time, duration, shuffle, repeat, volume, muted };
+export { queue, index, playing, time, duration, shuffle, repeat, volume, muted, audioInfo, isTranscoded };
 
 // 再生エンジン（Tauri では Rust 側の libmpv）。位置・長さ・一時停止・終了はイベントで届く
 let afterSeek: () => void = () => {}; // シーク後に OS へ位置を送る（Tauri のときだけ設定）
@@ -48,6 +52,7 @@ function getEngine(): Engine {
         const n = nextIndex(true);
         if (n < 0) { finished = true; setPlaying(false); setBase(0); } else load(n);
       },
+      info: setAudioInfo,
       error: () => setPlaying(false),
     },
     volume(),
@@ -83,6 +88,8 @@ function load(i: number, record = true) {
   setIndex(i);
   offset = 0;
   transcoded = settings().maxBitRate > 0;
+  setIsTranscoded(transcoded);
+  setAudioInfo(null);
   finished = false;
   setBase(0);
   setDuration(s.duration);

@@ -11,13 +11,15 @@ export interface Settings {
   lyricsEnabled: boolean;
   /** 同期歌詞で、現在行から離れた行をぼかす強さ */
   lyricsBlur: BlurLevel;
+  /** プレイヤーバーに、再生中の音声の詳細情報（コーデック・サンプルレートなど）を見るボタンを出す */
+  showAudioInfo: boolean;
   /** アクセントカラー（ACCENTS の id） */
   accent: string;
   /** アニメーション: システムの「視差効果を減らす」に従う / 常にオン / オフ */
   motion: MotionMode;
 }
 
-export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", accent: "red", motion: "system" };
+export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", showAudioInfo: false, accent: "red", motion: "system" };
 
 export const ACCENTS = [
   { id: "red", name: "レッド", color: "#fa2d48" },

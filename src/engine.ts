@@ -2,7 +2,17 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+/** 実際にデコードしているストリームの情報（不明な項目は null） */
+export interface AudioInfo {
+  codec: string | null;
+  format: string | null; // コンテナ（flac, mp3, ogg など）
+  sampleRate: number | null; // Hz
+  channels: number | null;
+  bitrate: number | null; // bit/s
+}
+
 export interface EngineEvents {
+  info?(info: AudioInfo): void; // libmpv のときだけ届く
   position(secs: number): void;
   duration(secs: number): void;
   paused(paused: boolean): void;
@@ -55,6 +65,7 @@ function mpvEngine(ev: EngineEvents, volume: number, muted: boolean, fallback: (
   void listen<{ secs: number }>("audio-position", (e) => ev.position(e.payload.secs));
   void listen<{ secs: number }>("audio-duration", (e) => ev.duration(e.payload.secs));
   void listen<{ paused: boolean }>("audio-paused", (e) => ev.paused(e.payload.paused));
+  void listen<AudioInfo>("audio-info", (e) => ev.info?.(e.payload));
   void listen("audio-ended", () => ev.ended());
   void listen<{ message: string }>("audio-error", (e) => ev.error(e.payload.message));
   void call("audio_volume", { volume });

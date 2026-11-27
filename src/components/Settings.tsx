@@ -72,6 +72,9 @@ export default function Settings() {
           <Row title="ストリーミング品質" desc="最大ビットレート(kbps)。「原音」以外はサーバー側で変換して再生します。次に再生する曲から反映されます。">
             <Segmented value={s().maxBitRate} options={BITRATES} onChange={(v) => updateSettings({ maxBitRate: v })} />
           </Row>
+          <Row title="詳細情報を表示" desc="プレイヤーバーに、再生中の音声のコーデック・サンプルレート・ビットレートなどを見るボタンを表示します。">
+            <Toggle label="詳細情報を表示" value={s().showAudioInfo} onChange={(v) => updateSettings({ showAudioInfo: v })} />
+          </Row>
         </Section>
 
         <Section title="歌詞">

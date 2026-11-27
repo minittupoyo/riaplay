@@ -1,6 +1,7 @@
 //! 音声の再生エンジン（libmpv）。キューや UI はフロント側で持ち、ここは「1 本のストリームを鳴らす」ことだけを担当する。
 //! 状態の変化は次のイベントでフロントへ返す:
 //!   audio-position {secs} / audio-duration {secs} / audio-paused {paused} / audio-ended / audio-error {message}
+//!   audio-info {codec, format, sampleRate, channels, bitrate}（実際にデコードしているストリームの情報。不明な項目は null）
 
 use crate::SharedControls;
 use libmpv2::{events::*, mpv_end_file_reason, Format, Mpv};
@@ -42,10 +43,16 @@ impl Audio {
         client.observe_property("time-pos", Format::Double, 0).map_err(|e| format!("{e:?}"))?;
         client.observe_property("duration", Format::Double, 0).map_err(|e| format!("{e:?}"))?;
         client.observe_property("pause", Format::Flag, 0).map_err(|e| format!("{e:?}"))?;
+        client.observe_property("audio-codec-name", Format::String, 0).map_err(|e| format!("{e:?}"))?;
+        client.observe_property("file-format", Format::String, 0).map_err(|e| format!("{e:?}"))?;
+        client.observe_property("audio-params/samplerate", Format::Int64, 0).map_err(|e| format!("{e:?}"))?;
+        client.observe_property("audio-params/channel-count", Format::Int64, 0).map_err(|e| format!("{e:?}"))?;
+        client.observe_property("audio-bitrate", Format::Double, 0).map_err(|e| format!("{e:?}"))?;
 
         thread::spawn(move || {
             let mut last_pos = f64::NEG_INFINITY;
             let mut paused = false;
+            let mut info = serde_json::json!({ "codec": null, "format": null, "sampleRate": null, "channels": null, "bitrate": null });
             // OS（MPRIS など）へ、libmpv の実際の位置をそのまま送る。フロント経由だと補間でぶれるため
             let push = |pos: f64, paused: bool| {
                 if let Some(c) = controls.lock().unwrap().as_mut() {
@@ -69,13 +76,36 @@ impl Audio {
                         ("duration", PropertyData::Double(d)) => {
                             let _ = app.emit("audio-duration", serde_json::json!({ "secs": d }));
                         }
+                        (
+                            "audio-codec-name" | "file-format" | "audio-params/samplerate" | "audio-params/channel-count" | "audio-bitrate",
+                            data,
+                        ) => {
+                            let key = match name {
+                                "audio-codec-name" => "codec",
+                                "file-format" => "format",
+                                "audio-params/samplerate" => "sampleRate",
+                                "audio-params/channel-count" => "channels",
+                                _ => "bitrate",
+                            };
+                            info[key] = match data {
+                                PropertyData::Str(v) => serde_json::json!(v),
+                                PropertyData::Int64(v) => serde_json::json!(v),
+                                PropertyData::Double(v) => serde_json::json!(v), // bit/s
+                                _ => serde_json::Value::Null,
+                            };
+                            let _ = app.emit("audio-info", &info);
+                        }
                         ("pause", PropertyData::Flag(p)) => {
                             paused = p;
                             let _ = app.emit("audio-paused", serde_json::json!({ "paused": p }));
                         }
                         _ => {}
                     },
-                    Ok(Event::StartFile) => last_pos = f64::NEG_INFINITY,
+                    Ok(Event::StartFile) => {
+                        last_pos = f64::NEG_INFINITY;
+                        info = serde_json::json!({ "codec": null, "format": null, "sampleRate": null, "channels": null, "bitrate": null });
+                        let _ = app.emit("audio-info", &info);
+                    }
                     Ok(Event::EndFile(r)) => {
                         if r == mpv_end_file_reason::Eof {
                             let _ = app.emit("audio-ended", ());

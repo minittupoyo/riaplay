@@ -11,6 +11,7 @@ import {
 } from "../player";
 import Slider from "./Slider";
 import Heart from "./Heart";
+import AudioInfo from "./AudioInfo";
 import { queueOpen, lyricsOpen, panelOpen, toggleQueue, toggleLyrics, bp } from "../store";
 
 export const fmt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -93,6 +94,7 @@ export default function PlayerBar(props: { client: SubsonicClient }) {
             onWheel={(e) => volHover() && setVolume(volume() - Math.sign(e.deltaY) * 0.05)}
           >
             <div class={`flex items-center gap-1 transition-opacity duration-200 ${volHover() ? "opacity-0 pointer-events-none" : ""}`}>
+              <AudioInfo />
               <button class={`p-2 rounded-full ${lyricsOpen() ? "text-accent" : "text-white/60 hover:text-white"}`} title="歌詞" onClick={toggleLyrics}>
                 <IconQuote size={20} />
               </button>
