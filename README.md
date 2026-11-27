@@ -81,4 +81,4 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 ## ライセンス
 
-MIT
+[MIT](LICENSE)
