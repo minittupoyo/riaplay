@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, For, Match, on, Show, Switch } from "solid-js";
-import { IconAlertCircle, IconLoader2, IconPencil, IconPlus, IconRefresh, IconTrash } from "@tabler/icons-solidjs";
-import { SubsonicClient } from "./api";
+import { IconAlertCircle, IconDownload, IconLoader2, IconPencil, IconPlus, IconRefresh, IconTrash } from "@tabler/icons-solidjs";
+import { NetworkError, SubsonicClient } from "./api";
 import Login from "./components/Login";
 import Library from "./components/Library";
 import ServerDialog from "./components/ServerDialog";
@@ -9,8 +9,10 @@ import ContextMenu from "./components/ContextMenu";
 import { activeId, addServer, getPassword, hostOf, passwordsReady, removeServer, servers, setActive, setServerDialog, type Server, type ServerInput } from "./servers";
 import { clearQueue } from "./player";
 import { clearFavorites } from "./favorites";
+import { downloadsReady, hasDownloads } from "./downloads";
+import { toast } from "./toast";
 
-type Status = "idle" | "connecting" | "ready" | "error";
+type Status = "idle" | "connecting" | "ready" | "error" | "offline";
 
 export default function App() {
   const active = createMemo<Server | null>(() => servers().find((s) => s.id === activeId()) ?? null);
@@ -40,12 +42,29 @@ export default function App() {
       setStatus("ready");
     } catch (e) {
       if (my !== token) return;
+      // サーバーに届かない場合は、ダウンロード済みの曲があればそのままオフラインで使う（エラー画面は出さない）
+      if (e instanceof NetworkError) {
+        await downloadsReady;
+        if (my !== token) return;
+        if (hasDownloads(s.id)) {
+          goOffline(s);
+          toast("サーバーに接続できないため、オフラインで開きました", "info", 4000);
+          return;
+        }
+      }
       setError(e instanceof Error ? e.message : String(e));
       setStatus("error");
     }
   };
   // 登録済みなら起動時に自動で接続する（ログイン画面は出さない）。アクティブなサーバーが変わる/編集されたら再接続
   createEffect(on(active, (s) => { connect(s); }));
+
+  /** 接続できないとき、ダウンロード済みの曲だけを使う（通信はしない） */
+  const goOffline = (s: Server) => {
+    clearQueue();
+    setClient(new SubsonicClient({ ...s, password: "" }));
+    setStatus("offline");
+  };
 
   /** 初回: サーバーが 1 つもないときの接続画面 */
   const firstRun = async (v: ServerInput) => {
@@ -58,8 +77,11 @@ export default function App() {
       <Show when={servers().length > 0} fallback={<Login onSubmit={firstRun} />}>
         <Switch>
           <Match when={status() === "ready" && client()}>{(c) => <Library client={c()} />}</Match>
+          <Match when={status() === "offline" && client()}>
+            {(c) => <Library client={c()} offline onReconnect={() => connect(active())} />}
+          </Match>
           <Match when={status() === "error"}>
-            <ConnectionError server={active()} message={error()} onRetry={() => connect(active())} />
+            <ConnectionError server={active()} message={error()} onRetry={() => connect(active())} onOffline={() => { const s = active(); if (s) goOffline(s); }} />
           </Match>
           <Match when={true}>
             <main class="h-full flex flex-col items-center justify-center gap-3 text-white/50">
@@ -77,7 +99,7 @@ export default function App() {
 }
 
 /** 接続できなかったとき: 再試行・編集・別のサーバーへ切り替え・削除 */
-function ConnectionError(props: { server: Server | null; message: string; onRetry: () => void }) {
+function ConnectionError(props: { server: Server | null; message: string; onRetry: () => void; onOffline: () => void }) {
   const others = () => servers().filter((s) => s.id !== props.server?.id);
   const btn = "flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium";
   return (
@@ -93,6 +115,9 @@ function ConnectionError(props: { server: Server | null; message: string; onRetr
         <p class="text-sm text-accent mb-6 break-words">{props.message}</p>
         <div class="flex flex-wrap gap-3">
           <button class={`${btn} bg-accent hover:brightness-110`} onClick={props.onRetry}><IconRefresh size={16} />再試行</button>
+          <Show when={props.server && hasDownloads(props.server.id)}>
+            <button class={`${btn} bg-white/10 hover:bg-white/15`} onClick={props.onOffline}><IconDownload size={16} />ダウンロードした曲を使う</button>
+          </Show>
           <Show when={props.server}>
             {(s) => <button class={`${btn} bg-white/10 hover:bg-white/15`} onClick={() => setServerDialog({ mode: "edit", id: s().id })}><IconPencil size={16} />編集</button>}
           </Show>

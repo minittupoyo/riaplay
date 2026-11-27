@@ -1,8 +1,14 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import SparkMD5 from "spark-md5";
 import { settings } from "./settings";
+import { localCoverUrl } from "./downloads";
+
+/** サーバーに届かなかった（ネットワークが無い・名前が引けない・5xx など）。認証エラーなどの「届いたうえでの失敗」とは区別する */
+export class NetworkError extends Error {}
 
 export interface Config {
+  /** 登録済みサーバーの ID（ダウンロードの保存先の区別に使う） */
+  id?: string;
   url: string;
   username: string;
   password: string;
@@ -22,6 +28,7 @@ export interface Song {
   title: string;
   artist: string;
   album: string;
+  albumId?: string;
   track?: number;
   discNumber?: number;
   duration: number;
@@ -56,6 +63,10 @@ function randomSalt(): string {
 export class SubsonicClient {
   constructor(private cfg: Config) {}
 
+  get serverId(): string | undefined {
+    return this.cfg.id;
+  }
+
   private base(): string {
     return this.cfg.url.replace(/\/+$/, "");
   }
@@ -81,7 +92,13 @@ export class SubsonicClient {
   }
 
   private async call<T = any>(endpoint: string, extra?: Params): Promise<T> {
-    const res = await fetch(`${this.base()}/rest/${endpoint}?${this.params(extra)}`);
+    let res: Response;
+    try {
+      res = await fetch(`${this.base()}/rest/${endpoint}?${this.params(extra)}`);
+    } catch (e) {
+      throw new NetworkError(e instanceof Error ? e.message : String(e));
+    }
+    if (res.status >= 500) throw new NetworkError(`HTTP ${res.status}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = (await res.json())["subsonic-response"];
     if (body.status !== "ok") throw new Error(body.error?.message ?? "不明なエラー");
@@ -176,8 +193,20 @@ export class SubsonicClient {
     return `${this.base()}/rest/stream?${this.params(extra, true)}`;
   }
 
+  /** 原音のファイルそのもの（トランスコードしない）。オフライン再生用のダウンロードに使う */
+  downloadUrl(id: string): string {
+    return `${this.base()}/rest/download?${this.params({ id })}`;
+  }
+
+  /** ダウンロード用のジャケット（表示サイズより大きめに保存する） */
+  coverDownloadUrl(id: string, size = 800): string {
+    return `${this.base()}/rest/getCoverArt?${this.params({ id, size })}`;
+  }
+
   coverUrl(id: string | undefined, size = 200): string | undefined {
     if (!id) return undefined;
+    const local = localCoverUrl(this.cfg.id, id); // ダウンロード済みの曲のジャケットは、ローカルのファイルを使う
+    if (local) return local;
     return `${this.base()}/rest/getCoverArt?${this.params({ id, size }, true)}`;
   }
 }

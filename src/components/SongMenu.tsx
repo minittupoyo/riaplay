@@ -1,10 +1,12 @@
 import { createSignal, For, onCleanup, onMount, Show } from "solid-js";
-import { IconDots, IconPlayerPlayFilled, IconPlayerTrackNext, IconListDetails, IconPlaylistAdd, IconChevronRight, IconTrash, IconPlus } from "@tabler/icons-solidjs";
+import { IconDots, IconDownload, IconPlayerPlayFilled, IconPlayerTrackNext, IconListDetails, IconPlaylistAdd, IconChevronRight, IconTrash, IconPlus } from "@tabler/icons-solidjs";
 import type { Playlist, Song, SubsonicClient } from "../api";
 import { enqueue, playNext, playQueue } from "../player";
 import { bumpPlaylists, openCreateDialog } from "../store";
 import { createPresence } from "../motion";
 import { openContextMenu } from "../contextMenu";
+import { downloadsSupported, enqueueDownloads } from "../downloads";
+import { toast } from "../toast";
 
 export interface MenuActions {
   client: SubsonicClient;
@@ -35,6 +37,17 @@ export function SongMenuPanel(props: MenuActions & { close: () => void; play?: b
       <button class={item} onClick={(e) => act(e, (s) => enqueue(props.client, s))}>
         <IconListDetails size={16} class="text-accent" />キューに追加
       </button>
+      <Show when={downloadsSupported}>
+        <button
+          class={item}
+          onClick={(e) => act(e, (s) => {
+            const r = enqueueDownloads(props.client, s);
+            toast(r.added ? `${r.added} 曲のダウンロードを始めました` : "すべてダウンロード済みです");
+          })}
+        >
+          <IconDownload size={16} class="text-accent" />ダウンロード
+        </button>
+      </Show>
       <button class={item} onClick={(e) => { e.stopPropagation(); setSub(!sub()); }}>
         <IconPlaylistAdd size={16} class="text-accent" />プレイリストに追加
         <IconChevronRight size={14} class="ml-auto text-white/40" />

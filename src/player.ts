@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { Song, SubsonicClient } from "./api";
 import { settings } from "./settings";
 import { createEngine, type AudioInfo, type Engine } from "./engine";
+import { downloadedPath } from "./downloads";
 
 export type RepeatMode = "off" | "all" | "one";
 
@@ -93,14 +94,16 @@ function load(i: number, record = true, dir: NavDirection | null = null) {
   played.add(i);
   setIndex(i);
   offset = 0;
-  transcoded = settings().maxBitRate > 0;
+  // ダウンロード済みの曲は、サーバーに繋がなくてもローカルのファイルから再生する（原音なのでトランスコードもしない）
+  const local = client.serverId ? downloadedPath(client.serverId, s.id) : undefined;
+  transcoded = !local && settings().maxBitRate > 0;
   setIsTranscoded(transcoded);
   setAudioInfo(null);
   finished = false;
   setBase(0);
   setDuration(s.duration);
   setPlaying(true);
-  getEngine().load(client.streamUrl(s.id));
+  getEngine().load(local ?? client.streamUrl(s.id));
 }
 
 export function playQueue(c: SubsonicClient, songs: Song[], start = 0) {

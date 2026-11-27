@@ -1,5 +1,5 @@
 import { createEffect, createResource, createSignal, on, onCleanup, onMount, For, Show, Switch, Match } from "solid-js";
-import { IconDisc, IconMicrophone2, IconMusic, IconLoader2, IconSearch, IconPlaylist, IconPlus, IconHeart, IconMenu2, IconSettings, IconRefresh } from "@tabler/icons-solidjs";
+import { IconDisc, IconMicrophone2, IconMusic, IconLoader2, IconSearch, IconPlaylist, IconPlus, IconHeart, IconMenu2, IconSettings, IconRefresh, IconDownload, IconPlugConnected } from "@tabler/icons-solidjs";
 import type { Album, Artist, Playlist, SubsonicClient } from "../api";
 import AlbumDetail from "./AlbumDetail";
 import ArtistDetail from "./ArtistDetail";
@@ -12,6 +12,7 @@ import PlayerBar from "./PlayerBar";
 import Favorites from "./Favorites";
 import PlaylistList from "./PlaylistList";
 import Settings from "./Settings";
+import Downloads from "./Downloads";
 import { loadFavorites } from "../favorites";
 import AlbumCard, { Cover } from "./AlbumCard";
 import { current } from "../player";
@@ -20,14 +21,16 @@ import { firstShow, resetFirstShow } from "../firstShow";
 import { playlistVersion, libraryVersion, reloadLibrary, refreshed, queueOpen, lyricsOpen, bp, openCreateDialog, nowPlayingOpen } from "../store";
 import { settings } from "../settings";
 import { openContextMenu } from "../contextMenu";
+import { downloadsSupported } from "../downloads";
 import CreatePlaylistDialog from "./CreatePlaylistDialog";
 import ServerSwitcher from "./ServerSwitcher";
 
-type Tab = "albums" | "artists" | "favorites" | "playlists" | "search" | "settings";
+type Tab = "albums" | "artists" | "favorites" | "playlists" | "search" | "downloads" | "settings";
 type View = { t: "album" | "artist" | "playlist"; id: string };
 
-export default function Library(props: { client: SubsonicClient }) {
-  const [tab, setTab] = createSignal<Tab>("albums");
+/** offline: サーバーに繋がらないまま、ダウンロード済みの曲だけを使う。onReconnect で接続をやり直す */
+export default function Library(props: { client: SubsonicClient; offline?: boolean; onReconnect?: () => void }) {
+  const [tab, setTab] = createSignal<Tab>(props.offline ? "downloads" : "albums");
   const [query, setQuery] = createSignal("");
   const [stack, setStack] = createSignal<View[]>([]);
   const view = () => stack()[stack().length - 1];
@@ -92,25 +95,25 @@ export default function Library(props: { client: SubsonicClient }) {
 
   onMount(() => {
     resetFirstShow(); // サーバーを切り替えて作り直されたときは、また最初だけアニメーションする
-    loadFavorites(props.client).catch(() => {});
+    if (!props.offline) loadFavorites(props.client).catch(() => {});
   });
-  const [albums] = createResource<Album[], number>(libraryVersion, (_, { value }) => refreshed(value, () => props.client.getAlbums(0, 80)));
+  const [albums] = createResource<Album[], number>(() => (props.offline ? false : libraryVersion() + 1), (_, { value }) => refreshed(value, () => props.client.getAlbums(0, 80)));
   const [artists] = createResource<Artist[], readonly [boolean, number]>(
-    () => [tab() === "artists", libraryVersion()] as const,
+    () => (props.offline ? false : ([tab() === "artists", libraryVersion()] as const)),
     ([on], { value }) => (on ? refreshed(value, () => props.client.getArtists()) : []),
   );
   const [playlists] = createResource<Playlist[], readonly [number, number]>(
-    () => [playlistVersion(), libraryVersion()] as const,
+    () => (props.offline ? false : ([playlistVersion(), libraryVersion()] as const)),
     (_, { value }) => refreshed(value, () => props.client.getPlaylists()),
   );
   // 再読み込み中（手動・定期のどちらも）。ボタンの回転表示に使う
   const reloading = () => albums.loading || artists.loading || playlists.loading;
   // 再読み込み時は、お気に入りも取得し直す（初回は onMount で取得済み）
-  createEffect(on(libraryVersion, () => loadFavorites(props.client).catch(() => {}), { defer: true }));
+  createEffect(on(libraryVersion, () => { if (!props.offline) loadFavorites(props.client).catch(() => {}); }, { defer: true }));
   // 定期実行
   createEffect(() => {
     const m = settings().libraryRefreshMinutes;
-    if (m <= 0) return;
+    if (m <= 0 || props.offline) return;
     const t = setInterval(reloadLibrary, m * 60_000);
     onCleanup(() => clearInterval(t));
   });
@@ -145,28 +148,43 @@ export default function Library(props: { client: SubsonicClient }) {
   const sidebar = (compact: boolean) => (
     <>
       <ServerSwitcher compact={compact} />
-      <button class={`${item(isTab("search"), compact)} mb-4 bg-white/10`} title="検索" onClick={() => switchTab("search")}>
-        <IconSearch size={18} class="text-white/50" />
-        <Show when={!compact}><span class="text-white/50">検索</span></Show>
-      </button>
-      <Show when={!compact}>
-        <div class="flex items-center justify-between px-3 pb-1 text-xs font-semibold text-white/40">
-          <span>ライブラリ</span>
-          <button class="p-0.5 rounded hover:text-white" title="ライブラリを再読み込み" onClick={reloadLibrary}>
-            <IconRefresh size={15} class={reloading() ? "animate-spin" : ""} />
-          </button>
-        </div>
+      <Show when={props.offline}>
+        <button class={`${item(false, compact)} mb-3 bg-white/10`} title="オフラインです。押すと接続をやり直します" onClick={() => props.onReconnect?.()}>
+          <IconPlugConnected size={18} class="text-accent" />
+          <Show when={!compact}><span class="text-white/70">オフライン · 再接続</span></Show>
+        </button>
+      </Show>
+      <Show when={!props.offline}>
+        <button class={`${item(isTab("search"), compact)} mb-4 bg-white/10`} title="検索" onClick={() => switchTab("search")}>
+          <IconSearch size={18} class="text-white/50" />
+          <Show when={!compact}><span class="text-white/50">検索</span></Show>
+        </button>
+        <Show when={!compact}>
+          <div class="flex items-center justify-between px-3 pb-1 text-xs font-semibold text-white/40">
+            <span>ライブラリ</span>
+            <button class="p-0.5 rounded hover:text-white" title="ライブラリを再読み込み" onClick={reloadLibrary}>
+              <IconRefresh size={15} class={reloading() ? "animate-spin" : ""} />
+            </button>
+          </div>
+        </Show>
       </Show>
       <nav class="space-y-0.5">
-        <button class={item(isTab("albums"), compact)} title="アルバム" onClick={() => switchTab("albums")}><IconDisc size={20} class={icon(isTab("albums"))} /><Show when={!compact}>アルバム</Show></button>
-        <button class={item(isTab("artists"), compact)} title="アーティスト" onClick={() => switchTab("artists")}><IconMicrophone2 size={20} class={icon(isTab("artists"))} /><Show when={!compact}>アーティスト</Show></button>
-        <button class={item(isTab("playlists"), compact)} title="プレイリスト" onClick={() => switchTab("playlists")}><IconPlaylist size={20} class={icon(isTab("playlists"))} /><Show when={!compact}>プレイリスト</Show></button>
-        <button class={item(isTab("favorites"), compact)} title="お気に入り" onClick={() => switchTab("favorites")}><IconHeart size={20} class={icon(isTab("favorites"))} /><Show when={!compact}>お気に入り</Show></button>
-        <Show when={compact}>
+        <Show when={!props.offline}>
+          <button class={item(isTab("albums"), compact)} title="アルバム" onClick={() => switchTab("albums")}><IconDisc size={20} class={icon(isTab("albums"))} /><Show when={!compact}>アルバム</Show></button>
+          <button class={item(isTab("artists"), compact)} title="アーティスト" onClick={() => switchTab("artists")}><IconMicrophone2 size={20} class={icon(isTab("artists"))} /><Show when={!compact}>アーティスト</Show></button>
+          <button class={item(isTab("playlists"), compact)} title="プレイリスト" onClick={() => switchTab("playlists")}><IconPlaylist size={20} class={icon(isTab("playlists"))} /><Show when={!compact}>プレイリスト</Show></button>
+          <button class={item(isTab("favorites"), compact)} title="お気に入り" onClick={() => switchTab("favorites")}><IconHeart size={20} class={icon(isTab("favorites"))} /><Show when={!compact}>お気に入り</Show></button>
+        </Show>
+        <Show when={downloadsSupported}>
+          <button class={item(isTab("downloads"), compact)} title="ダウンロード" onClick={() => switchTab("downloads")}><IconDownload size={20} class={icon(isTab("downloads"))} /><Show when={!compact}>ダウンロード</Show></button>
+        </Show>
+        <Show when={compact && !props.offline}>
           <button class={item(false, true)} title="ライブラリを再読み込み" onClick={reloadLibrary}><IconRefresh size={20} class={`text-white/50 ${reloading() ? "animate-spin" : ""}`} /></button>
         </Show>
       </nav>
 
+      <Show when={props.offline}><div class="flex-1" /></Show>
+      <Show when={!props.offline}>
       <Show
         when={!compact}
         fallback={<div class="my-3 border-t border-white/10" />}
@@ -190,6 +208,7 @@ export default function Library(props: { client: SubsonicClient }) {
           <div class="px-3 py-1 text-xs text-white/30">なし</div>
         </Show>
       </div>
+      </Show>
 
       <button class={`${item(isTab("settings"), compact)} mt-2`} title="設定" onClick={() => switchTab("settings")}>
         <IconSettings size={20} class={icon(isTab("settings"))} />
@@ -228,6 +247,9 @@ export default function Library(props: { client: SubsonicClient }) {
                 </Match>
                 <Match when={tab() === "settings"}>
                   <Settings />
+                </Match>
+                <Match when={tab() === "downloads"}>
+                  <Downloads client={props.client} />
                 </Match>
                 <Match when={tab() === "playlists"}>
                   <PlaylistList client={props.client} playlists={playlists()} loading={playlists.loading}
