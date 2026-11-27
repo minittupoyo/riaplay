@@ -4,6 +4,7 @@ import { SubsonicClient } from "./api";
 import Login from "./components/Login";
 import Library from "./components/Library";
 import ServerDialog from "./components/ServerDialog";
+import Toaster from "./components/Toaster";
 import { activeId, addServer, getPassword, hostOf, passwordsReady, removeServer, servers, setActive, setServerDialog, type Server, type ServerInput } from "./servers";
 import { clearQueue } from "./player";
 import { clearFavorites } from "./favorites";
@@ -70,6 +71,7 @@ export default function App() {
         </Switch>
       </Show>
       <ServerDialog />
+      <Toaster />
     </>
   );
 }
