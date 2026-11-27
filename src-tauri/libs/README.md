@@ -7,11 +7,17 @@
 AppImage は `linuxdeploy` がリンク先の共有ライブラリ（libmpv とその依存）を自動で取り込みます。
 
 ## Windows
-ビルド時とバンドル時に、次の 2 つが必要です（リポジトリには含めていません）。
-1. リンク用: `mpv.lib` — libmpv の開発用アーカイブ（[shinchiro のビルド](https://github.com/shinchiro/mpv-winbuild-cmake/releases) などの `mpv-dev-x86_64-*.7z`）に含まれる `libmpv.dll.a` から作る（`lib /def:mpv.def /machine:x64 /out:mpv.lib`）。置き場所を環境変数 `LIB` に通す。
-2. 実行時: `libmpv-2.dll`（同アーカイブの `libmpv-2.dll`）を `src-tauri/libs/windows/libmpv-2.dll` に置く。`tauri.windows.conf.json` が、実行ファイルの隣へ同梱します。
+ビルド時とバンドル時に、`src-tauri/libs/windows/` へ次の 2 つが必要です（リポジトリには含めていません）。
+- `mpv.lib`: リンク用のインポートライブラリ（shinchiro のビルドの `libmpv.dll.a` をそのまま改名したもの。MSVC のリンカーが読める）
+- `libmpv-2.dll`: 実行時に使う DLL。`tauri.windows.conf.json` が、実行ファイルの隣へ同梱します
 
-> Windows 向けのビルドは、この環境では試していません。手順は libmpv2 クレートの案内に沿ったものです。
+どちらも次のスクリプトで取得できます。`build.rs` がこのフォルダをリンク検索パスに加えるので、`LIB` の設定は要りません。
+
+```powershell
+powershell -File scripts/fetch-libmpv.ps1
+```
+
+> `cargo test` は Windows では起動時に `STATUS_ENTRYPOINT_NOT_FOUND` で落ちます（Tauri のテストに必要なマニフェストが無いため）。ビルドと実行には影響しません。
 
 ## macOS
 `brew install mpv` でビルドできます。配布時は `libmpv.2.dylib` とその依存を `.app` の Frameworks へ入れ、`install_name_tool` で参照先を書き換える必要があります（`dylibbundler` が使えます）。設定はまだ入れていません。
