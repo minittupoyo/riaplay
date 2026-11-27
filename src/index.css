@@ -78,6 +78,13 @@ button:not(:disabled),
   mask-image: linear-gradient(to bottom, transparent 0, #000 3rem, #000 calc(100% - clamp(2.5rem, 14%, 7rem)), transparent 100%);
 }
 
+/* サイドパネルの歌詞: 見出しの直下なので、フェードと余白は控えめにする */
+.fade-y-sm {
+  padding-top: 1.5rem;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 1.5rem, #000 calc(100% - 4rem), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 1.5rem, #000 calc(100% - 4rem), transparent 100%);
+}
+
 /* 間奏は、その行に来たときだけ表示する（高さを滑らかに開閉して周囲の行が跳ねないようにする） */
 .lyric-line.interlude {
   display: grid;

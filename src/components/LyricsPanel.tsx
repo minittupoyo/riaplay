@@ -81,7 +81,7 @@ export default function LyricsPanel(props: { ref?: (e: HTMLElement) => void; ove
             <button class="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10" onClick={() => setLyricsOpen(false)}><IconX size={18} /></button>
           </div>
         </Show>
-        <div ref={scroller} class="flex-1 overflow-y-scroll px-4">
+        <div ref={scroller} class={`flex-1 overflow-y-scroll px-4 ${props.embedded ? "" : "fade-y-sm"}`}>
           <Show when={current()} fallback={<p class={msg}>曲を再生すると歌詞が表示されます</p>}>
             <Show when={settings().lyricsEnabled} fallback={<p class={msg}>歌詞の取得がオフになっています。設定の「歌詞」から有効にできます。</p>}>
             <Show when={lyrics.loading}><div class="flex items-center gap-2 text-white/50 text-sm"><IconLoader2 size={16} class="animate-spin" />取得中…</div></Show>
