@@ -3,7 +3,7 @@
 再生エンジンに libmpv を使っています（`src/audio.rs`）。配布物には次のように含めます。
 
 ## Linux
-`tauri.conf.json` の `bundle.linux` で、deb は `libmpv2 | libmpv1`、rpm は `mpv-libs` に依存させています（利用者の環境にあれば入れ直しは不要）。
+`tauri.conf.json` の `bundle.linux` で、deb は `libmpv2`（libmpv1 は API が古く、使えない）、rpm は `mpv-libs` に依存させています（利用者の環境にあれば入れ直しは不要）。
 AppImage は `linuxdeploy` がリンク先の共有ライブラリ（libmpv とその依存）を自動で取り込みます。
 
 ## Windows

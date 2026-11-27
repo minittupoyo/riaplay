@@ -13,7 +13,7 @@ concurrency:
 jobs:
   linux:
     name: Linux (deb / rpm / AppImage)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
