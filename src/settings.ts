@@ -11,6 +11,8 @@ export interface Settings {
   lyricsEnabled: boolean;
   /** 同期歌詞で、現在行から離れた行をぼかす強さ */
   lyricsBlur: BlurLevel;
+  /** ライブラリを自動で再読み込みする間隔（分）。0 = しない */
+  libraryRefreshMinutes: number;
   /** プレイヤーバーに、再生中の音声の詳細情報（コーデック・サンプルレートなど）を見るボタンを出す */
   showAudioInfo: boolean;
   /** アクセントカラー（ACCENTS の id） */
@@ -19,7 +21,7 @@ export interface Settings {
   motion: MotionMode;
 }
 
-export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", showAudioInfo: false, accent: "red", motion: "system" };
+export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", showAudioInfo: false, libraryRefreshMinutes: 0, accent: "red", motion: "system" };
 
 export const ACCENTS = [
   { id: "red", name: "レッド", color: "#fa2d48" },

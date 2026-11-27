@@ -72,6 +72,13 @@ export default function Settings() {
           <Row title="ストリーミング品質" desc="最大ビットレート(kbps)。「原音」以外はサーバー側で変換して再生します。次に再生する曲から反映されます。">
             <Segmented value={s().maxBitRate} options={BITRATES} onChange={(v) => updateSettings({ maxBitRate: v })} />
           </Row>
+          <Row title="ライブラリの自動更新" desc="指定した間隔で、アルバム・アーティスト・プレイリスト・お気に入りをサーバーから再読み込みします。サイドバーのボタンで、いつでも手動で再読み込みできます。">
+            <Segmented
+              value={s().libraryRefreshMinutes}
+              options={[{ value: 0, label: "なし" }, { value: 5, label: "5分" }, { value: 15, label: "15分" }, { value: 30, label: "30分" }, { value: 60, label: "60分" }]}
+              onChange={(v) => updateSettings({ libraryRefreshMinutes: v })}
+            />
+          </Row>
           <Row title="詳細情報を表示" desc="プレイヤーバーに、再生中の音声のコーデック・サンプルレート・ビットレートなどを見るボタンを表示します。">
             <Toggle label="詳細情報を表示" value={s().showAudioInfo} onChange={(v) => updateSettings({ showAudioInfo: v })} />
           </Row>

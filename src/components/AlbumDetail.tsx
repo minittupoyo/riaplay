@@ -2,6 +2,7 @@ import { createResource, For, Show } from "solid-js";
 import { IconChevronLeft, IconPlayerPlayFilled, IconArrowsShuffle, IconLoader2, IconVolume, IconDisc } from "@tabler/icons-solidjs";
 import type { Song, SubsonicClient } from "../api";
 import { enter } from "../motion";
+import { libraryVersion, refreshed } from "../store";
 import { playQueue, current, playing, toggleShuffle, shuffle } from "../player";
 import { fmt } from "./PlayerBar";
 import SongMenu from "./SongMenu";
@@ -21,13 +22,13 @@ function discs(songs: Song[], titles: Record<number, string>) {
 }
 
 export default function AlbumDetail(props: { client: SubsonicClient; id: string; onBack: () => void }) {
-  const [data] = createResource(() => props.id, (id) => props.client.getAlbum(id));
+  const [data] = createResource<Awaited<ReturnType<SubsonicClient["getAlbum"]>>, readonly [string, number]>(() => [props.id, libraryVersion()] as const, ([id], { value }) => refreshed(value, () => props.client.getAlbum(id)));
   return (
     <div ref={(e) => enter(e, { y: 10 })}>
       <button class="flex items-center gap-0.5 text-accent mb-5 -ml-1" onClick={props.onBack}>
         <IconChevronLeft size={20} />戻る
       </button>
-      <Show when={data.loading}><IconLoader2 class="animate-spin text-white/50" /></Show>
+      <Show when={data.loading && !data()}><IconLoader2 class="animate-spin text-white/50" /></Show>
       <Show when={data.error}><p class="text-accent">{String(data.error)}</p></Show>
       <Show when={data()}>
         {(d) => (

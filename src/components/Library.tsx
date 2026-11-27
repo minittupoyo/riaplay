@@ -1,6 +1,6 @@
-import { createResource, createSignal, onMount, For, Show, Switch, Match } from "solid-js";
-import { IconDisc, IconMicrophone2, IconMusic, IconLoader2, IconSearch, IconPlaylist, IconPlus, IconHeart, IconMenu2, IconSettings } from "@tabler/icons-solidjs";
-import type { SubsonicClient } from "../api";
+import { createEffect, createResource, createSignal, on, onCleanup, onMount, For, Show, Switch, Match } from "solid-js";
+import { IconDisc, IconMicrophone2, IconMusic, IconLoader2, IconSearch, IconPlaylist, IconPlus, IconHeart, IconMenu2, IconSettings, IconRefresh } from "@tabler/icons-solidjs";
+import type { Album, Artist, Playlist, SubsonicClient } from "../api";
 import AlbumDetail from "./AlbumDetail";
 import ArtistDetail from "./ArtistDetail";
 import PlaylistDetail from "./PlaylistDetail";
@@ -16,7 +16,8 @@ import AlbumCard, { Cover } from "./AlbumCard";
 import { current } from "../player";
 import { animate, createPresence, enter, stagger } from "../motion";
 import { firstShow, resetFirstShow } from "../firstShow";
-import { playlistVersion, queueOpen, lyricsOpen, bp, openCreateDialog } from "../store";
+import { playlistVersion, libraryVersion, reloadLibrary, refreshed, queueOpen, lyricsOpen, bp, openCreateDialog } from "../store";
+import { settings } from "../settings";
 import CreatePlaylistDialog from "./CreatePlaylistDialog";
 import ServerSwitcher from "./ServerSwitcher";
 
@@ -91,9 +92,26 @@ export default function Library(props: { client: SubsonicClient }) {
     resetFirstShow(); // サーバーを切り替えて作り直されたときは、また最初だけアニメーションする
     loadFavorites(props.client).catch(() => {});
   });
-  const [albums] = createResource(() => props.client.getAlbums(0, 80));
-  const [artists] = createResource(() => (tab() === "artists" ? true : false), (on) => (on ? props.client.getArtists() : []));
-  const [playlists] = createResource(playlistVersion, () => props.client.getPlaylists());
+  const [albums] = createResource<Album[], number>(libraryVersion, (_, { value }) => refreshed(value, () => props.client.getAlbums(0, 80)));
+  const [artists] = createResource<Artist[], readonly [boolean, number]>(
+    () => [tab() === "artists", libraryVersion()] as const,
+    ([on], { value }) => (on ? refreshed(value, () => props.client.getArtists()) : []),
+  );
+  const [playlists] = createResource<Playlist[], readonly [number, number]>(
+    () => [playlistVersion(), libraryVersion()] as const,
+    (_, { value }) => refreshed(value, () => props.client.getPlaylists()),
+  );
+  // 再読み込み中（手動・定期のどちらも）。ボタンの回転表示に使う
+  const reloading = () => albums.loading || artists.loading || playlists.loading;
+  // 再読み込み時は、お気に入りも取得し直す（初回は onMount で取得済み）
+  createEffect(on(libraryVersion, () => loadFavorites(props.client).catch(() => {}), { defer: true }));
+  // 定期実行
+  createEffect(() => {
+    const m = settings().libraryRefreshMinutes;
+    if (m <= 0) return;
+    const t = setInterval(reloadLibrary, m * 60_000);
+    onCleanup(() => clearInterval(t));
+  });
 
   // キューパネル: 幅を開閉アニメーションしつつ、退場完了までアンマウントしない
   const [queuePresent, queueRef] = createPresence(
@@ -122,12 +140,22 @@ export default function Library(props: { client: SubsonicClient }) {
         <IconSearch size={18} class="text-white/50" />
         <Show when={!compact}><span class="text-white/50">検索</span></Show>
       </button>
-      <Show when={!compact}><div class="px-3 pb-1 text-xs font-semibold text-white/40">ライブラリ</div></Show>
+      <Show when={!compact}>
+        <div class="flex items-center justify-between px-3 pb-1 text-xs font-semibold text-white/40">
+          <span>ライブラリ</span>
+          <button class="p-0.5 rounded hover:text-white" title="ライブラリを再読み込み" onClick={reloadLibrary}>
+            <IconRefresh size={15} class={reloading() ? "animate-spin" : ""} />
+          </button>
+        </div>
+      </Show>
       <nav class="space-y-0.5">
         <button class={item(isTab("albums"), compact)} title="アルバム" onClick={() => switchTab("albums")}><IconDisc size={20} class={icon(isTab("albums"))} /><Show when={!compact}>アルバム</Show></button>
         <button class={item(isTab("artists"), compact)} title="アーティスト" onClick={() => switchTab("artists")}><IconMicrophone2 size={20} class={icon(isTab("artists"))} /><Show when={!compact}>アーティスト</Show></button>
         <button class={item(isTab("playlists"), compact)} title="プレイリスト" onClick={() => switchTab("playlists")}><IconPlaylist size={20} class={icon(isTab("playlists"))} /><Show when={!compact}>プレイリスト</Show></button>
         <button class={item(isTab("favorites"), compact)} title="お気に入り" onClick={() => switchTab("favorites")}><IconHeart size={20} class={icon(isTab("favorites"))} /><Show when={!compact}>お気に入り</Show></button>
+        <Show when={compact}>
+          <button class={item(false, true)} title="ライブラリを再読み込み" onClick={reloadLibrary}><IconRefresh size={20} class={`text-white/50 ${reloading() ? "animate-spin" : ""}`} /></button>
+        </Show>
       </nav>
 
       <Show
@@ -268,7 +296,7 @@ export default function Library(props: { client: SubsonicClient }) {
 function Status(props: { res: { loading: boolean; error?: unknown } & (() => unknown) }) {
   return (
     <>
-      <Show when={props.res.loading}>
+      <Show when={props.res.loading && props.res() === undefined}>
         <div class="flex items-center gap-2 text-white/50"><IconLoader2 size={18} class="animate-spin" />読み込み中…</div>
       </Show>
       <Show when={props.res.error}>
