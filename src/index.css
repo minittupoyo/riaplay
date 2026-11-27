@@ -66,6 +66,30 @@ button:not(:disabled),
 }
 .lyric-line.active .lyric-text { transform: none; }
 
+/* ---- 再生中画面 ---- */
+/* 背景: ジャケットを大きくぼかし、彩度を上げた画像を重ねて、ゆっくり動かす */
+.np-bg { position: absolute; inset: 0; overflow: hidden; background: #18181b; }
+.np-bg img {
+  position: absolute;
+  object-fit: cover;
+  filter: blur(64px) saturate(2.4) brightness(0.95);
+  will-change: transform;
+}
+.np-bg-a { width: 130%; height: 130%; left: -15%; top: -20%; animation: np-drift-a 38s ease-in-out infinite alternate; }
+.np-bg-b { width: 90%; height: 90%; right: -25%; bottom: -30%; opacity: 0.85; transform: rotate(180deg); animation: np-drift-b 46s ease-in-out infinite alternate; }
+.np-bg-c { width: 70%; height: 70%; left: 15%; top: 20%; opacity: 0.6; transform: rotate(90deg); animation: np-drift-c 52s ease-in-out infinite alternate; }
+@keyframes np-drift-a { from { transform: translate(0, 0) rotate(0deg) scale(1); } to { transform: translate(6%, 4%) rotate(12deg) scale(1.12); } }
+@keyframes np-drift-b { from { transform: rotate(180deg) translate(0, 0) scale(1); } to { transform: rotate(150deg) translate(-8%, 6%) scale(1.2); } }
+@keyframes np-drift-c { from { transform: rotate(90deg) translate(0, 0) scale(1); } to { transform: rotate(130deg) translate(10%, -8%) scale(1.15); } }
+html.no-motion .np-bg img { animation: none; }
+
+/* ジャケットに重ねる操作: ホバー（またはキーボードフォーカス・タップで固定）したときだけ見せる */
+.np-controls { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+.np-cover:hover .np-controls, .np-cover:focus-within .np-controls, .np-cover[data-pinned="true"] .np-controls { opacity: 1; pointer-events: auto; }
+
+/* シークバー: 再生中画面では太めにする */
+.slider.np-seek { height: 8px; background: linear-gradient(to right, rgba(255,255,255,.95) var(--p, 0%), rgba(255,255,255,.28) var(--p, 0%)); }
+
 /* 再生中画面の歌詞は、サイドパネルより大きく表示する */
 .np-lyrics .lyric-line { font-size: clamp(1.9rem, 3.4vw, 3.2rem); padding: 0.6rem 0; }
 .np-lyrics .lyric-dots i { width: 0.9rem; height: 0.9rem; }

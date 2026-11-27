@@ -35,7 +35,7 @@ export default function NowPlayingQueue(props: { client: SubsonicClient }) {
             <For each={queue()}>
               {(s, i) => (
                 <li
-                  class={`group flex items-center gap-4 rounded-xl px-3 py-2 cursor-pointer hover:bg-white/10 border-y-2 border-transparent ${i() === index() ? "bg-white/15" : ""}`}
+                  class={`group flex items-center gap-4 rounded-xl px-3 py-2 cursor-pointer hover:bg-white/10 border-y-2 border-transparent ${i() === index() ? "bg-white/25" : ""}`}
                   {...bind(i())} style={indicator(i())} onClick={() => jumpTo(i())}
                 >
                   <div class="relative size-14 shrink-0">
@@ -43,11 +43,11 @@ export default function NowPlayingQueue(props: { client: SubsonicClient }) {
                       <img src={props.client.coverUrl(s.coverArt, 120)} loading="lazy" class="size-14 rounded-lg object-cover" alt="" />
                     </Show>
                     <Show when={i() === index() && playing()}>
-                      <div class="absolute inset-0 rounded-lg bg-black/50 flex items-center justify-center"><IconVolume size={20} class="text-accent" /></div>
+                      <div class="absolute inset-0 rounded-lg bg-black/50 flex items-center justify-center"><IconVolume size={20} class="text-white" /></div>
                     </Show>
                   </div>
                   <div class="min-w-0 flex-1">
-                    <div class={`text-lg font-medium truncate ${i() === index() ? "text-accent" : ""}`}>{s.title}</div>
+                    <div class={`text-lg truncate ${i() === index() ? "font-extrabold text-white" : "font-medium text-white/80"}`}>{s.title}</div>
                     <div class="text-sm text-white/55 truncate">{s.artist}</div>
                   </div>
                   <span class="text-sm text-white/40 tabular-nums group-hover:hidden">{fmt(s.duration)}</span>
