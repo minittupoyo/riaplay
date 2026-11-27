@@ -17,7 +17,7 @@ AppImage は `linuxdeploy` がリンク先の共有ライブラリ（libmpv と�
 powershell -File scripts/fetch-libmpv.ps1
 ```
 
-> `cargo test` は Windows では起動時に `STATUS_ENTRYPOINT_NOT_FOUND` で落ちます（Tauri のテストに必要なマニフェストが無いため）。ビルドと実行には影響しません。
+> `cargo test` は、テスト用の実行ファイルにも `windows.manifest`（comctl32 v6）を埋め込む必要があり、`build.rs` が行います。
 
 ## macOS
 `brew install mpv` でビルドできます。配布時は `libmpv.2.dylib` とその依存を `.app` の Frameworks へ入れ、`install_name_tool` で参照先を書き換える必要があります（`dylibbundler` が使えます）。設定はまだ入れていません。

@@ -66,6 +66,8 @@ jobs:
         with:
           workspaces: src-tauri
       - run: bunx tsc --noEmit
+      - run: bun run build
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
       - run: bun run tauri build
       - uses: actions/upload-artifact@v4
         with:

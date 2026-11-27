@@ -180,7 +180,9 @@ mod tests {
                     cmd: cmd.into(),
                     callback: CallbackFn(0),
                     error: CallbackFn(1),
-                    url: "tauri://localhost".parse().unwrap(), // アプリ本体と同じ「ローカル」オリジン（http://tauri.localhost はリモート扱いで拒否される）
+                    // アプリ本体と同じ「ローカル」オリジン。Windows は http://tauri.localhost、他は tauri://localhost
+                    // （OS が違う方はリモート扱いで拒否される）
+                    url: if cfg!(windows) { "http://tauri.localhost" } else { "tauri://localhost" }.parse().unwrap(),
                     body: InvokeBody::Json(body),
                     headers: Default::default(),
                     invoke_key: INVOKE_KEY.to_string(),
