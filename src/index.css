@@ -1,0 +1,109 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/noto-sans-jp";
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter Variable", "Noto Sans JP Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-accent: #fa2d48;
+  --color-surface: #1c1c1e;
+}
+
+html, body, #root { height: 100%; }
+body { @apply bg-surface text-white antialiased select-none; }
+input { @apply select-text; }
+
+/* Tailwind v4 では button の cursor が default になるため、全体で pointer に戻す */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+/* スクロールバーを控えめに */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 9999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+.overflow-y-auto { scrollbar-gutter: stable; }
+
+/* Apple Music 風スライダー（--p に進捗%を渡す） */
+.slider {
+  display: block; /* 行高ぶんの余白が下に付かないようにする */
+  margin: 0;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  outline: none;
+  background: linear-gradient(to right, rgba(255,255,255,.9) var(--p, 0%), rgba(255,255,255,.2) var(--p, 0%));
+}
+.slider::-webkit-slider-thumb { appearance: none; width: 0; height: 0; }
+.slider:hover::-webkit-slider-thumb {
+  appearance: none; width: 10px; height: 10px; border-radius: 9999px; background: #fff;
+}
+
+/* ---- 歌詞（beautiful-lyrics を参考にした見せ方） ---- */
+.lyric-line {
+  padding: 0.45rem 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.2;
+  opacity: 0.51;
+  cursor: pointer;
+  transition: opacity 0.25s cubic-bezier(0.61, 1, 0.88, 1), filter 0.35s cubic-bezier(0.61, 1, 0.88, 1);
+}
+.lyric-line.active { transition: opacity 0.25s cubic-bezier(0.61, 1, 0.88, 1); } /* 発光はバネで毎フレーム更新するので遷移させない */
+.lyric-line.sung { opacity: 0.497; }
+.lyric-line.active { opacity: 1; }
+.lyric-scroll:not(.auto-scrolling) .lyric-line:hover { opacity: 1; }
+.lyric-scroll:not(.auto-scrolling) .lyric-line:not(.active):hover { filter: none !important; }
+.user-scrolling .lyric-line:not(.active) { filter: none !important; }
+
+.lyric-text {
+  display: block;
+  white-space: pre-wrap;
+  /* 他の行を縮小して相対的にアクティブ行を強調する（transform なので行の高さは変わらない。アクティブ行は等倍のままなので文字がぼやけない） */
+  transform: scale(0.94);
+  transform-origin: left center;
+  transition: transform 0.3s cubic-bezier(0.61, 1, 0.88, 1);
+}
+.lyric-line.active .lyric-text { transform: none; }
+
+/* 間奏は、その行に来たときだけ表示する（高さを滑らかに開閉して周囲の行が跳ねないようにする） */
+.lyric-line.interlude {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 1;
+  padding: 0;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* closing: 終了の少し前から、ドットが消え始めるのと同時に閉じ始める */
+.lyric-line.interlude.active:not(.closing) { grid-template-rows: 1fr; }
+.lyric-collapse { overflow: hidden; min-height: 0; }
+.lyric-dots {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.7rem 0;
+  transform-origin: left center;
+  opacity: 0;
+}
+.lyric-dots i {
+  display: block;
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 9999px;
+  background: #fff;
+  will-change: transform, opacity;
+}
+
+/* カード一覧: 画面幅に応じてカードの最小幅を連続的に変える */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(130px, 16vw, 180px), 1fr));
+  gap: 1.75rem 1.25rem;
+}
+
+/* 設定「アニメーション: オフ」: CSS のトランジションも止める（WAAPI は motion.ts 側で即時完了にする） */
+html.no-motion *, html.no-motion *::before, html.no-motion *::after {
+  transition-duration: 1ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}

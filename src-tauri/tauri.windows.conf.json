@@ -1,0 +1,7 @@
+{
+  "bundle": {
+    "resources": {
+      "libs/windows/libmpv-2.dll": "libmpv-2.dll"
+    }
+  }
+}
