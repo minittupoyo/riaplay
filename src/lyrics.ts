@@ -1,5 +1,6 @@
 import { fetch } from "@tauri-apps/plugin-http";
 import type { Song } from "./api";
+import { openStore } from "./idb";
 
 export interface Lyrics {
   /** 同期歌詞（時刻順）。無ければ null */
@@ -23,40 +24,12 @@ const inflight = new Map<string, Promise<Lyrics | null>>();
 
 const keyOf = (s: Song) => [s.title, s.artist, s.album, Math.round(s.duration)].map((x) => String(x).trim().toLowerCase()).join("\u0000");
 
-const DB_NAME = "riaplay-cache";
-const STORE = "lyrics";
-let dbp: Promise<IDBDatabase | null> | null = null;
-/** 開けない環境（プライベートモードなど）では null。その場合はメモリだけで動く */
-const openDb = () =>
-  (dbp ??= new Promise((resolve) => {
-    try {
-      const r = indexedDB.open(DB_NAME, 1);
-      r.onupgradeneeded = () => r.result.createObjectStore(STORE);
-      r.onsuccess = () => resolve(r.result);
-      r.onerror = () => resolve(null);
-      r.onblocked = () => resolve(null);
-    } catch {
-      resolve(null);
-    }
-  }));
-async function idb<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>): Promise<T | undefined> {
-  const db = await openDb();
-  if (!db) return undefined;
-  return new Promise((resolve) => {
-    try {
-      const rq = fn(db.transaction(STORE, mode).objectStore(STORE));
-      rq.onsuccess = () => resolve(rq.result);
-      rq.onerror = () => resolve(undefined);
-    } catch {
-      resolve(undefined);
-    }
-  });
-}
+const db = openStore("riaplay-cache", "lyrics");
 
 /** 保存済みの歌詞をすべて消す（設定から） */
 export async function clearLyricsCache() {
   memory.clear();
-  await idb("readwrite", (s) => s.clear());
+  await db.clear();
 }
 
 /** "[01:23.45] text" 形式（1行に複数タイムスタンプも可）を解析する */
@@ -92,7 +65,7 @@ export async function fetchLyrics(song: Song): Promise<Lyrics | null> {
   const key = keyOf(song);
   const m = memory.get(key);
   if (m && fresh(m)) return m.v;
-  const saved = (await idb<Entry>("readonly", (s) => s.get(key))) as Entry | undefined;
+  const saved = await db.get<Entry>(key);
   if (saved && fresh(saved)) {
     memory.set(key, saved);
     return saved.v;
@@ -103,7 +76,7 @@ export async function fetchLyrics(song: Song): Promise<Lyrics | null> {
     p = fetchRemote(song).then((v) => {
       const e: Entry = { v, at: Date.now() };
       memory.set(key, e);
-      void idb("readwrite", (s) => s.put(e, key));
+      void db.put(key, e);
       return v;
     }).finally(() => inflight.delete(key));
     inflight.set(key, p);
