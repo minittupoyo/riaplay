@@ -268,7 +268,7 @@ if (inTauri) {
   const status = () => (!current() ? "stopped" : playing() ? "playing" : "paused");
   const sendDiscord = async () => {
     const s = current();
-    if (!s) { void invoke("discord_clear").catch(() => {}); return; }
+    if (!s || !settings().discordPresence) { void invoke("discord_clear").catch(() => {}); return; }
     const pos = currentTime(), isPlaying = playing();
     const coverUrl = await publicCover(s.artist, s.album);
     if (current()?.id !== s.id) return; // 検索中に曲が変わったら捨てる
@@ -306,4 +306,5 @@ if (inTauri) {
   });
   // 曲の切り替え・再生/一時停止のたびに状態と位置を送る（再生中の位置は Rust 側が libmpv の値をそのまま送る）
   watch([() => current()?.id, playing], () => sendPlayback(), { immediate: true });
+  watch(() => settings().discordPresence, () => void sendDiscord());
 }

@@ -98,6 +98,12 @@ const clearCache = async () => {
         </SettingRow>
       </SettingSection>
 
+      <SettingSection title="Discord">
+        <SettingRow title="Rich Presence を表示" desc="再生中の曲をDiscordのステータスに表示します。オンにすると、曲名・アーティスト名・アルバム名がDiscordに送られ、ジャケット画像の検索のためアーティスト名とアルバム名が iTunes・Deezer・MusicBrainz にも送信されます。Discordが起動している必要があります。">
+          <Toggle label="Rich Presence を表示" :value="settings().discordPresence" @change="updateSettings({ discordPresence: $event })" />
+        </SettingRow>
+      </SettingSection>
+
       <SettingSection title="歌詞">
         <SettingRow title="歌詞を取得する" desc="サーバー、LRCLIB（lrclib.net）、NetEase Cloud Music の順に探します。オンにすると、再生中の曲名・アーティスト名・アルバム名・再生時間が LRCLIB と NetEase Cloud Music に送信されます。">
           <Toggle label="歌詞を取得する" :value="settings().lyricsEnabled" @change="updateSettings({ lyricsEnabled: $event })" />

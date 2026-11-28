@@ -32,7 +32,7 @@ Navidrome用のデスクトップ音楽プレイヤーです。画面はTauri 2�
 
 OSのメディアキーとメディアコントロールにも繋がります。LinuxはMPRIS、WindowsはSMTC、macOSはNow Playingです。
 
-DiscordのRich Presenceにも対応しています。Discord Developer Portalで作ったアプリケーションのIDを、ビルド時に環境変数`DISCORD_CLIENT_ID`で渡すと有効になります。未設定なら何もしません。ローカルのDiscordとIPCで通信するので、Discordを後から起動しても、次の曲の切り替えや再生操作で繋がります。
+DiscordのRich Presenceにも対応しています。Discord Developer Portalで作ったアプリケーションのIDを、ビルド時に環境変数`DISCORD_CLIENT_ID`で渡し、設定の「Discord」でオンにすると有効になります(初期値はオフ)。ローカルのDiscordとIPCで通信するので、Discordを後から起動しても、次の曲の切り替えや再生操作で繋がります。
 カバー画像は、サーバーのURLが認証情報を含むためそのままは使いません。代わりにアーティスト名とアルバム名だけを公開API(iTunes Search、Deezer、MusicBrainz/Cover Art Archive)に送って、ジャケット画像を探します。見つからなければ画像なしで表示します。
 
 ### 歌詞

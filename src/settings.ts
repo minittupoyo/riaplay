@@ -21,13 +21,15 @@ export interface Settings {
   libraryRefreshMinutes: number;
   /** プレイヤーバーに、再生中の音声の詳細情報（コーデック・サンプルレートなど）を見るボタンを出す */
   showAudioInfo: boolean;
+  /** Discord の Rich Presence に再生中の曲を表示する（曲名などが Discord と公開カバー画像 API に送信される） */
+  discordPresence: boolean;
   /** アクセントカラー（ACCENTS の id） */
   accent: string;
   /** アニメーション: システムの「視差効果を減らす」に従う / 常にオン / オフ */
   motion: MotionMode;
 }
 
-export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", lyricsRomaji: false, lyricsRomajiPosition: "below", showAudioInfo: false, libraryRefreshMinutes: 0, accent: "red", motion: "system" };
+export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", lyricsRomaji: false, lyricsRomajiPosition: "below", showAudioInfo: false, discordPresence: false, libraryRefreshMinutes: 0, accent: "red", motion: "system" };
 
 export const ACCENTS = [
   { id: "red", name: "レッド", color: "#fa2d48" },
