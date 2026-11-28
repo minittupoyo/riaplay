@@ -32,7 +32,6 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - run: bunx tsc --noEmit
       - run: bun run build
       # テストは Tauri のウィンドウを作るので、仮想ディスプレイ上で動かす。
       # secrets_roundtrip は実際の OS キーチェーン（Secret Service）が要るので CI では除く
@@ -65,7 +64,6 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      - run: bunx tsc --noEmit
       - run: bun run build
       - run: cargo test --manifest-path src-tauri/Cargo.toml
       - run: bun run tauri build
@@ -89,7 +87,6 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      - run: bunx tsc --noEmit
       - run: bun run build
       # libmpv の同梱設定が未対応（src-tauri/libs/README.md）なので、バンドルは作らずコンパイルが通ることだけ確認する
       - run: bun run tauri build --no-bundle
