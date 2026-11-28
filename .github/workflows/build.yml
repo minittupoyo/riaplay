@@ -3,6 +3,7 @@ name: build
 on:
   push:
     branches: [main]
+    paths: ["src/**", "src-tauri/**"]
   pull_request:
   workflow_dispatch:
   workflow_call: # release.yml から呼ぶ
