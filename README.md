@@ -1,104 +1,47 @@
 # riaplay
 
-Navidrome用のデスクトップ音楽プレイヤーです。画面はTauri 2とVue 3、音声はlibmpvで作っています。
+Navidrome用のデスクトップ音楽プレイヤーです。Tauri 2、Vue 3、libmpvで作っています。
 
 ![アルバム一覧](screenshots/album_list.png)
 
 ## 画面
 
-アルバムを開くと曲が並びます。再生中の曲には、行の左にスピーカーのアイコンが付きます。
-
 ![アルバム詳細](screenshots/album_detail.png)
 
-歌詞は右のパネルに出ます。同期歌詞では、いま歌っている行が白く浮き上がり、遠い行ほどぼけます。
+歌詞は右のパネルに出ます。同期歌詞では、いま歌っている行が浮き上がり、遠い行ほどぼけます。
 
 ![サイドバーの歌詞](screenshots/lyric_sidebar.png)
 
-プレイヤーバーの拡大ボタンかジャケットをクリックすると、ウィンドウいっぱいの再生中画面になります。背景にはジャケットの色が広がり、前面にはシークバーと曲名だけが残ります。ジャケットにマウスを載せると、再生、前後の曲、シャッフル、リピート、音量、お気に入りが重なって出ます。
+プレイヤーバーの拡大ボタンかジャケットをクリックすると、ウィンドウいっぱいの再生中画面になります。ジャケットにマウスを載せると、再生や音量などの操作が重なって出ます。
 
 ![再生中画面](screenshots/nowplay_screen.png)
 
 ## 機能
 
-サーバーは何台でも登録して切り替えられます。パスワードはOSのキーチェーンに保存します。追加時に「パスワードを保存する」を外すと、起動中だけメモリに持ち、次の起動でまた聞かれます。
+- サーバーは何台でも登録して切り替えられます。パスワードはOSのキーチェーンに保存します。
+- アルバム、アーティスト、プレイリスト、お気に入りの一覧と検索があります。設定で自動更新の間隔も選べます。
+- 右クリックメニューから、次に再生、キューへの追加、プレイリストへの追加ができます。キューはドラッグで並べ替えます。
+- 曲をダウンロードして、オフラインで聴けます。サーバーに繋がらなくても、ダウンロード済みの曲でアプリが開きます。
+- 設定で最大ビットレートを選べます。原音以外はサーバーで変換されます。
+- OSのメディアキーに対応しています。LinuxはMPRIS、WindowsはSMTC、macOSはNow Playingです。
+- DiscordのRich Presenceに対応しています。ジャケット画像は、アーティスト名とアルバム名で公開API(iTunes Search、Deezer、MusicBrainz)から探します。
+- ListenBrainzでのScrobblingに対応しています。
 
-ライブラリはアルバム、アーティスト、プレイリスト、お気に入りに分かれ、検索もできます。サイドバーの更新ボタンで読み込み直せます。設定で5分から60分の間隔を選ぶと、自動でも更新します。
-
-曲、アルバム、プレイリストの行やカードを右クリックすると、再生、次に再生、キューへの追加、プレイリストへの追加が出ます。キューはドラッグで並べ替えます。
-
-曲はダウンロードして、オフラインで聴けます。サーバーに繋がらないときは、ダウンロード済みの曲だけでアプリが開きます。ダウンロードはデスクトップ版のみで、ブラウザで動かす開発時は使えません。
-
-ストリーミング品質は、設定で最大ビットレートを選びます。原音以外を選ぶと、サーバーで変換した音が届きます。再生中のコーデック、サンプルレート、ビットレートは、プレイヤーバーの「i」ボタンで見られます。設定の「詳細情報を表示」をオンにすると出るボタンです。
-
-OSのメディアキーとメディアコントロールにも繋がります。LinuxはMPRIS、WindowsはSMTC、macOSはNow Playingです。
-
-DiscordのRich Presenceにも対応しています。Discord Developer Portalで作ったアプリケーションのIDを、ビルド時に環境変数`DISCORD_CLIENT_ID`で渡し、設定の「Discord」でオンにすると有効になります(初期値はオフ)。ローカルのDiscordとIPCで通信するので、Discordを後から起動しても、次の曲の切り替えや再生操作で繋がります。
-カバー画像は、サーバーのURLが認証情報を含むためそのままは使いません。代わりにアーティスト名とアルバム名だけを公開API(iTunes Search、Deezer、MusicBrainz/Cover Art Archive)に送って、ジャケット画像を探します。見つからなければ画像なしで表示します。
-
-ListenBrainz(公式サーバー)への再生履歴の送信にも対応しています。設定でユーザートークンを入力してオンにすると、曲の半分または4分を聴いた時点で記録します(30秒未満の曲は対象外)。送信に失敗した分は端末に溜めて、後で再送します。トークンはOSのキーチェーンに保存します。
+DiscordとListenBrainzは、どちらも設定でオンにすると使えます(初期値はオフ)。
 
 ### 歌詞
 
-歌詞は、サーバー(OpenSubsonicの歌詞に対応している場合)、[LRCLIB](https://lrclib.net)、NetEase Cloud Musicの順に探し、同期歌詞が見つかった時点で止めます。LRCLIBとNetEase Cloud Musicには、曲名、アーティスト名、アルバム名、再生時間が送られます。送りたくなければ、設定の「歌詞を取得する」をオフにします。
+サーバー(OpenSubsonicの歌詞に対応している場合)、[LRCLIB](https://lrclib.net)、NetEase Cloud Musicの順に探します。LRCLIBとNetEase Cloud Musicには、曲名、アーティスト名、アルバム名、再生時間が送られます。送りたくなければ、設定の「歌詞を取得する」をオフにします。
 
-一度取った歌詞は端末のIndexedDBに残り、次からは問い合わせません。見つからなかった曲は7日後に探し直します。設定の「歌詞のキャッシュ」から消せます。
+取得した歌詞は端末に保存します。見つからなかった曲は7日後に探し直します。
 
 ## 使い方
 
-初回起動でサーバーのURL、ユーザー名、パスワードを入れます。2回目からは、前回のサーバーにそのまま繋がります。
+[Releases](https://github.com/minittupoyo/riaplay/releases)からインストーラーを入れます。初回起動でサーバーのURL、ユーザー名、パスワードを入れます。
 
-## ビルド
+## 開発
 
-BunとRust 1.85以降が必要です。[Tauriの前提パッケージ](https://tauri.app/start/prerequisites/)も入れておきます。
-
-```sh
-bun install
-bun run tauri dev     # 開発用に起動
-bun run tauri build   # インストーラーを作る
-bun run build         # フロントエンドの型チェック(vue-tsc)とビルドだけ行う
-```
-
-libmpvの用意はプラットフォームごとに違います。
-
-**Windows**は、先にlibmpvのDLLとインポートライブラリを取得します。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/fetch-libmpv.ps1
-```
-
-`src-tauri/libs/windows/`に置かれ、ビルド時に実行ファイルの隣へ同梱されます。
-
-**Linux**は開発用パッケージを入れます。libmpvは新しめのclient APIを使うので、CIはUbuntu 24.04でビルドしています。
-
-```sh
-sudo apt-get install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
-  librsvg2-dev libssl-dev libdbus-1-dev libmpv-dev patchelf rpm
-```
-
-**macOS**は`brew install mpv`でコンパイルできます。libmpvを`.app`に入れる設定がまだなく、配布用のバンドルは作れません。
-
-同梱の詳細は[src-tauri/libs/README.md](src-tauri/libs/README.md)にあります。
-
-### テスト
-
-```sh
-cargo test --manifest-path src-tauri/Cargo.toml
-```
-
-キーチェーンの保存と取得を実機のOSで確かめるテストが入っています。LinuxのCIにはSecret Serviceがないため、このテストだけ飛ばしています。
-
-### リリース
-
-`package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`のバージョンを揃えてコミットし、`v`を付けたタグをプッシュします。
-
-```sh
-git tag v0.2.0
-git push origin v0.2.0
-```
-
-CIがLinux(deb、rpm、AppImage)とWindows(NSIS、MSI)をビルドし、チェックサム付きのドラフトのリリースを作ります。内容を確認してから、GitHubの画面で公開します。タグとバージョンが食い違っていると失敗します。
-
-Discord Rich Presenceを有効にするには、リポジトリのシークレット(Settings → Secrets and variables → Actions → Secrets)に`DISCORD_CLIENT_ID`を登録します。未登録なら、ビルドしてもRich Presenceは動きません。
+ビルドやリリースの手順は[DEVELOPMENT.md](DEVELOPMENT.md)にあります。
 
 ## ライセンス
 
