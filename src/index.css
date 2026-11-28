@@ -9,6 +9,8 @@
 }
 
 html, body, #root { height: 100%; }
+/* 再生中画面の出入りなどで一時的にはみ出しても、ページ全体のスクロールバーを出さない */
+html, body { overflow: hidden; }
 body { @apply bg-surface text-white antialiased select-none; }
 input { @apply select-text; }
 
