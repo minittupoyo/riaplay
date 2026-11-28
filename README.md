@@ -98,7 +98,7 @@ git push origin v0.2.0
 
 CIがLinux(deb、rpm、AppImage)とWindows(NSIS、MSI)をビルドし、チェックサム付きのドラフトのリリースを作ります。内容を確認してから、GitHubの画面で公開します。タグとバージョンが食い違っていると失敗します。
 
-Discord Rich Presenceを有効にするには、リポジトリの変数(Settings → Secrets and variables → Actions → Variables)に`DISCORD_CLIENT_ID`を登録します。未登録なら、リリースのビルドではRich Presenceが動きません。
+Discord Rich Presenceを有効にするには、リポジトリのシークレット(Settings → Secrets and variables → Actions → Secrets)に`DISCORD_CLIENT_ID`を登録します。未登録なら、ビルドしてもRich Presenceは動きません。
 
 ## ライセンス
 

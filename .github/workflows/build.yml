@@ -42,7 +42,7 @@ jobs:
         run: bun run tauri build
         env:
           NO_STRIP: "true" # linuxdeploy の strip が新しい ELF 形式で失敗することがあるため
-          DISCORD_CLIENT_ID: ${{ vars.DISCORD_CLIENT_ID }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -70,7 +70,7 @@ jobs:
       - run: cargo test --manifest-path src-tauri/Cargo.toml
       - run: bun run tauri build
         env:
-          DISCORD_CLIENT_ID: ${{ vars.DISCORD_CLIENT_ID }}
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
       - uses: actions/upload-artifact@v4
         with:
           name: riaplay-windows
