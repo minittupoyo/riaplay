@@ -1,5 +1,5 @@
 use discord_rich_presence::{
-    activity::{Activity, Assets, ActivityType, Timestamps},
+    activity::{Activity, Assets, StatusDisplayType, ActivityType, Timestamps},
     DiscordIpc, DiscordIpcClient,
 };
 use std::{
@@ -45,12 +45,17 @@ fn now_ms() -> i64 {
 
 /// 再生中は経過時間バー付きで表示し、一時停止中は時間なしで表示する
 #[tauri::command]
-pub fn discord_update(state: tauri::State<Discord>, title: String, artist: String, album: String, cover_url: Option<String>, duration: f64, position: f64, playing: bool) {
+pub fn discord_update(state: tauri::State<Discord>, title: String, artist: String, album: String, status: String, cover_url: Option<String>, duration: f64, position: f64, playing: bool) {
     state.run(|c| {
         let mut a = Activity::new()
             .activity_type(ActivityType::Listening)
             .details(title.as_str())
-            .state(artist.as_str());
+            .state(artist.as_str())
+            .status_display_type(match status.as_str() {
+                "title" => StatusDisplayType::Details,
+                "artist" => StatusDisplayType::State,
+                _ => StatusDisplayType::Name,
+            });
         let mut assets = Assets::new();
         let mut has_assets = false;
         if !album.is_empty() {

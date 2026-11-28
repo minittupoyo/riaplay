@@ -5,6 +5,7 @@ import { signal } from "./reactive";
 export type MotionMode = "system" | "on" | "off";
 export type BlurLevel = "off" | "weak" | "strong";
 export type RomajiPosition = "below" | "above";
+export type DiscordStatus = "app" | "title" | "artist";
 
 export interface Settings {
   /** ストリーミングの最大ビットレート(kbps)。0 = 原音（変換しない） */
@@ -23,13 +24,15 @@ export interface Settings {
   showAudioInfo: boolean;
   /** Discord の Rich Presence に再生中の曲を表示する（曲名などが Discord と公開カバー画像 API に送信される） */
   discordPresence: boolean;
+  /** Discord のステータス文「〇〇を再生中」に出すもの */
+  discordStatus: DiscordStatus;
   /** アクセントカラー（ACCENTS の id） */
   accent: string;
   /** アニメーション: システムの「視差効果を減らす」に従う / 常にオン / オフ */
   motion: MotionMode;
 }
 
-export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", lyricsRomaji: false, lyricsRomajiPosition: "below", showAudioInfo: false, discordPresence: false, libraryRefreshMinutes: 0, accent: "red", motion: "system" };
+export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", lyricsRomaji: false, lyricsRomajiPosition: "below", showAudioInfo: false, discordPresence: false, discordStatus: "app", libraryRefreshMinutes: 0, accent: "red", motion: "system" };
 
 export const ACCENTS = [
   { id: "red", name: "レッド", color: "#fa2d48" },

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { IconCheck, IconPencil, IconPlus, IconTrash, IconServer } from "@tabler/icons-vue";
-import { ACCENTS, resetSettings, settings, updateSettings, type BlurLevel, type MotionMode, type RomajiPosition } from "../settings";
+import { ACCENTS, resetSettings, settings, updateSettings, type BlurLevel, type DiscordStatus, type MotionMode, type RomajiPosition } from "../settings";
 import { activeId, hostOf, removeServer, servers, setActive, setServerDialog } from "../servers";
 import { vEnter } from "../motion";
 import { clearLyricsCache } from "../lyrics";
@@ -21,6 +21,7 @@ const BITRATES = [
 ];
 const REFRESH_INTERVALS = [{ value: 0, label: "なし" }, { value: 5, label: "5分" }, { value: 15, label: "15分" }, { value: 30, label: "30分" }, { value: 60, label: "60分" }];
 const BLUR_LEVELS: { value: BlurLevel; label: string }[] = [{ value: "off", label: "なし" }, { value: "weak", label: "弱" }, { value: "strong", label: "強" }];
+const DISCORD_STATUSES: { value: DiscordStatus; label: string }[] = [{ value: "app", label: "riaplay" }, { value: "title", label: "曲のタイトル" }, { value: "artist", label: "アーティスト名" }];
 const ROMAJI_POSITIONS: { value: RomajiPosition; label: string }[] = [{ value: "below", label: "下" }, { value: "above", label: "上" }];
 const MOTION_MODES: { value: MotionMode; label: string }[] = [{ value: "system", label: "システム設定に従う" }, { value: "on", label: "オン" }, { value: "off", label: "オフ" }];
 
@@ -101,6 +102,9 @@ const clearCache = async () => {
       <SettingSection title="Discord">
         <SettingRow title="Rich Presence を表示" desc="再生中の曲をDiscordのステータスに表示します。オンにすると、曲名・アーティスト名・アルバム名がDiscordに送られ、ジャケット画像の検索のためアーティスト名とアルバム名が iTunes・Deezer・MusicBrainz にも送信されます。Discordが起動している必要があります。">
           <Toggle label="Rich Presence を表示" :value="settings().discordPresence" @change="updateSettings({ discordPresence: $event })" />
+        </SettingRow>
+        <SettingRow title="「〇〇を再生中」の表示" desc="Discordのメンバー一覧などで、「〇〇を再生中」の〇〇に出すもの。">
+          <Segmented :value="settings().discordStatus" :options="DISCORD_STATUSES" @change="updateSettings({ discordStatus: $event })" />
         </SettingRow>
       </SettingSection>
 
