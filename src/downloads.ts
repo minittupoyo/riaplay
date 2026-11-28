@@ -116,7 +116,7 @@ async function start(job: Job) {
   } catch (e) {
     if (String(e) !== "cancelled") {
       batch.failed++;
-      toast(`ダウンロードに失敗しました: ${job.song.title}（${String(e)}）`, "error", 5000);
+      toast(`ダウンロードに失敗しました: ${job.song.title}(${String(e)})`, "error", 5000);
     }
   } finally {
     setJobs((js) => js.filter((j) => j.key !== job.key));

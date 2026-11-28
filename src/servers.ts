@@ -87,7 +87,7 @@ async function migratePasswords() {
     try {
       await secretSet(secretKey(s.id), s.password);
     } catch (e) {
-      console.warn("パスワードをキーチェーンへ移行できませんでした（次回再試行します）:", e);
+      console.warn("パスワードをキーチェーンへ移行できませんでした(次回再試行します):", e);
       continue;
     }
     setServersRaw((l) => l.map((x) => (x.id === s.id ? (({ password: _p, ...rest }) => rest)(x) : x)));

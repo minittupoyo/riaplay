@@ -68,7 +68,7 @@ const clearCache = async () => {
               <span class="font-medium truncate">{{ sv.name }}</span>
               <span v-if="sv.id === activeId()" class="text-[11px] rounded-full bg-accent/20 text-accent px-2 py-0.5 shrink-0">接続中</span>
             </div>
-            <div class="text-sm text-white/50 truncate">{{ sv.username }}@{{ hostOf(sv.url) }}{{ sv.remember ? "" : "（パスワード未保存）" }}</div>
+            <div class="text-sm text-white/50 truncate">{{ sv.username }}@{{ hostOf(sv.url) }}{{ sv.remember ? "" : "(パスワード未保存)" }}</div>
           </div>
           <button v-if="sv.id !== activeId()" class="rounded-lg bg-white/10 hover:bg-white/15 px-3 py-1.5 text-sm" @click="setActive(sv.id)">切り替え</button>
           <button class="p-2 rounded-full text-white/50 hover:text-white hover:bg-white/10" title="編集" @click="setServerDialog({ mode: 'edit', id: sv.id })"><IconPencil :size="17" /></button>
@@ -100,16 +100,16 @@ const clearCache = async () => {
       </SettingSection>
 
       <SettingSection title="Discord">
-        <SettingRow title="Rich Presence を表示" desc="再生中の曲をDiscordのステータスに表示します。オンにすると、曲名・アーティスト名・アルバム名がDiscordに送られ、ジャケット画像の検索のためアーティスト名とアルバム名が iTunes・Deezer・MusicBrainz にも送信されます。Discordが起動している必要があります。">
-          <Toggle label="Rich Presence を表示" :value="settings().discordPresence" @change="updateSettings({ discordPresence: $event })" />
+        <SettingRow title="Rich Presenceを表示" desc="再生中の曲をDiscordのステータスに表示します。オンにすると、曲名・アーティスト名・アルバム名がDiscordに送られ、ジャケット画像の検索のためアーティスト名とアルバム名がiTunes・Deezer・MusicBrainzにも送信されます。Discordが起動している必要があります。">
+          <Toggle label="Rich Presenceを表示" :value="settings().discordPresence" @change="updateSettings({ discordPresence: $event })" />
         </SettingRow>
-        <SettingRow title="「〇〇を再生中」の表示" desc="Discordのメンバー一覧などで、「〇〇を再生中」の〇〇に出すもの。">
+        <SettingRow title="「〇〇を再生中」の表示" desc="Discordのステータスに表示される「〇〇を再生中」の〇〇を選びます。">
           <Segmented :value="settings().discordStatus" :options="DISCORD_STATUSES" @change="updateSettings({ discordStatus: $event })" />
         </SettingRow>
       </SettingSection>
 
       <SettingSection title="歌詞">
-        <SettingRow title="歌詞を取得する" desc="サーバー、LRCLIB（lrclib.net）、NetEase Cloud Music の順に探します。オンにすると、再生中の曲名・アーティスト名・アルバム名・再生時間が LRCLIB と NetEase Cloud Music に送信されます。">
+        <SettingRow title="歌詞を取得する" desc="サーバー、LRCLIB(lrclib.net)、NetEase Cloud Musicの順に探します。オンにすると、再生中の曲名・アーティスト名・アルバム名・再生時間がLRCLIBとNetEase Cloud Musicに送信されます。">
           <Toggle label="歌詞を取得する" :value="settings().lyricsEnabled" @change="updateSettings({ lyricsEnabled: $event })" />
         </SettingRow>
         <SettingRow title="ぼかし" desc="同期歌詞で、現在の行から離れた行をぼかす強さ。">
@@ -118,10 +118,10 @@ const clearCache = async () => {
         <SettingRow title="ローマ字で表示" desc="日本語の歌詞のヘボン式ローマ字を、原文と並べて表示します。変換は端末内で行います。">
           <Toggle label="ローマ字で表示" :value="settings().lyricsRomaji" @change="updateSettings({ lyricsRomaji: $event })" />
         </SettingRow>
-        <SettingRow title="ローマ字の位置" desc="原文に対して、ローマ字を表示する側。">
+        <SettingRow title="ローマ字の位置" desc="原文に対して、ローマ字を表示する側を選びます。">
           <Segmented :value="settings().lyricsRomajiPosition" :options="ROMAJI_POSITIONS" @change="updateSettings({ lyricsRomajiPosition: $event })" />
         </SettingRow>
-        <SettingRow title="歌詞のキャッシュ" desc="一度取得した歌詞は、この端末に保存して再利用します（見つからなかった曲は 7 日後に再確認します）。">
+        <SettingRow title="歌詞のキャッシュ" desc="一度取得した歌詞は、この端末に保存して再利用します(見つからなかった曲は7日後に再確認します)。">
           <button class="rounded-lg bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" @click="clearCache">削除</button>
         </SettingRow>
       </SettingSection>
@@ -143,19 +143,19 @@ const clearCache = async () => {
             </button>
           </div>
         </SettingRow>
-        <SettingRow title="アニメーション" desc="「システム設定に従う」は、OS の「視差効果を減らす」に連動します。">
+        <SettingRow title="アニメーション" desc="「システム設定に従う」は、OSの「視差効果を減らす」に連動します。">
           <Segmented :value="settings().motion" :options="MOTION_MODES" @change="updateSettings({ motion: $event })" />
         </SettingRow>
       </SettingSection>
 
       <SettingSection title="このアプリについて">
-        <SettingRow title="riaplay" desc="Navidrome 用のクライアント">
-          <span class="text-sm text-white/50 tabular-nums">バージョン {{ version }}</span>
+        <SettingRow title="riaplay" desc="Navidrome用のクライアントです。">
+          <span class="text-sm text-white/50 tabular-nums">バージョン{{ version }}</span>
         </SettingRow>
-        <SettingRow title="歌詞提供" desc="歌詞は、サーバー、LRCLIB（https://lrclib.net）、NetEase Cloud Music から取得しています。">
+        <SettingRow title="歌詞提供" desc="歌詞は、サーバー、LRCLIB(https://lrclib.net)、NetEase Cloud Musicから取得しています。">
           <span />
         </SettingRow>
-        <SettingRow title="設定を初期化" desc="再生品質・歌詞・外観の設定を初期値に戻します（登録済みのサーバーは変わりません）。">
+        <SettingRow title="設定を初期化" desc="再生品質・歌詞・外観の設定を初期値に戻します(登録済みのサーバーは変わりません)。">
           <button :class="['rounded-lg px-4 py-2 text-sm font-medium', confirmReset ? 'bg-accent' : 'bg-white/10 hover:bg-white/15']" @click="reset">
             {{ confirmReset ? "もう一度押して初期化" : "初期化" }}
           </button>

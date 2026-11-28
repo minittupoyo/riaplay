@@ -24,7 +24,7 @@ const rows = computed(() => {
   if (i.sampleRate) r.push(["サンプルレート", khz(i.sampleRate)]);
   if (i.channels) r.push(["チャンネル", channelLabel(i.channels)]);
   if (i.bitrate) r.push(["ビットレート", `${Math.round(i.bitrate / 1000)} kbps`]);
-  r.push(["配信", isTranscoded() ? `トランスコード（最大 ${settings().maxBitRate} kbps）` : "原音"]);
+  r.push(["配信", isTranscoded() ? `トランスコード(最大${settings().maxBitRate}kbps)` : "原音"]);
   return r;
 });
 </script>

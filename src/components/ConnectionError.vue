@@ -19,7 +19,7 @@ const btn = "flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium"
         <IconAlertCircle :size="28" class="text-accent shrink-0" />
         <h1 class="text-xl font-bold">接続できませんでした</h1>
       </div>
-      <p v-if="server" class="text-sm text-white/50 mb-1">{{ server.name }}（{{ server.username }}@{{ hostOf(server.url) }}）</p>
+      <p v-if="server" class="text-sm text-white/50 mb-1">{{ server.name }}({{ server.username }}@{{ hostOf(server.url) }})</p>
       <p class="text-sm text-accent mb-6 break-words">{{ message }}</p>
       <div class="flex flex-wrap gap-3">
         <button :class="`${btn} bg-accent hover:brightness-110`" @click="emit('retry')"><IconRefresh :size="16" />再試行</button>

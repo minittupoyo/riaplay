@@ -45,7 +45,7 @@ const input = "w-full bg-transparent py-2.5 outline-none placeholder:text-white/
   <form ref="form" class="space-y-4" @submit.prevent="submit">
     <label :class="field">
       <IconTag :size="18" class="text-white/40" />
-      <input v-model="name" :class="input" placeholder="表示名（任意）" />
+      <input v-model="name" :class="input" placeholder="表示名(任意)" />
     </label>
     <label :class="field">
       <IconServer :size="18" class="text-white/40" />
@@ -62,7 +62,7 @@ const input = "w-full bg-transparent py-2.5 outline-none placeholder:text-white/
         :class="input"
         type="password"
         :required="!passwordOptional"
-        :placeholder="passwordOptional ? 'パスワード（変更しない場合は空欄）' : 'パスワード'"
+        :placeholder="passwordOptional ? 'パスワード(変更しない場合は空欄)' : 'パスワード'"
         autocomplete="current-password"
       />
     </label>
@@ -70,7 +70,7 @@ const input = "w-full bg-transparent py-2.5 outline-none placeholder:text-white/
       <input v-model="remember" type="checkbox" class="mt-0.5 size-4 accent-[var(--color-accent)]" />
       <span class="text-sm">
         パスワードを保存する
-        <span class="flex items-center gap-1 text-xs text-white/40 mt-0.5"><IconShieldLock :size="13" />OS のキーチェーンに暗号化して保存します。外すと起動のたびに入力が必要です</span>
+        <span class="flex items-center gap-1 text-xs text-white/40 mt-0.5"><IconShieldLock :size="13" />OSのキーチェーンに暗号化して保存します。外すと起動のたびに入力が必要です</span>
       </span>
     </label>
     <p v-if="notice" class="text-sm text-white/60 px-1">{{ notice }}</p>
