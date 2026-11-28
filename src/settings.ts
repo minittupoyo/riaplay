@@ -4,6 +4,7 @@ import { signal } from "./reactive";
 /** アプリの設定（サーバー接続情報は servers.ts が別に管理する） */
 export type MotionMode = "system" | "on" | "off";
 export type BlurLevel = "off" | "weak" | "strong";
+export type RomajiPosition = "below" | "above";
 
 export interface Settings {
   /** ストリーミングの最大ビットレート(kbps)。0 = 原音（変換しない） */
@@ -12,6 +13,10 @@ export interface Settings {
   lyricsEnabled: boolean;
   /** 同期歌詞で、現在行から離れた行をぼかす強さ */
   lyricsBlur: BlurLevel;
+  /** 日本語の歌詞をローマ字で表示する */
+  lyricsRomaji: boolean;
+  /** ローマ字を原文の下・上のどちらに出すか */
+  lyricsRomajiPosition: RomajiPosition;
   /** ライブラリを自動で再読み込みする間隔（分）。0 = しない */
   libraryRefreshMinutes: number;
   /** プレイヤーバーに、再生中の音声の詳細情報（コーデック・サンプルレートなど）を見るボタンを出す */
@@ -22,7 +27,7 @@ export interface Settings {
   motion: MotionMode;
 }
 
-export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", showAudioInfo: false, libraryRefreshMinutes: 0, accent: "red", motion: "system" };
+export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", lyricsRomaji: false, lyricsRomajiPosition: "below", showAudioInfo: false, libraryRefreshMinutes: 0, accent: "red", motion: "system" };
 
 export const ACCENTS = [
   { id: "red", name: "レッド", color: "#fa2d48" },

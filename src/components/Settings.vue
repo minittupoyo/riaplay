@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { IconCheck, IconPencil, IconPlus, IconTrash, IconServer } from "@tabler/icons-vue";
-import { ACCENTS, resetSettings, settings, updateSettings, type BlurLevel, type MotionMode } from "../settings";
+import { ACCENTS, resetSettings, settings, updateSettings, type BlurLevel, type MotionMode, type RomajiPosition } from "../settings";
 import { activeId, hostOf, removeServer, servers, setActive, setServerDialog } from "../servers";
 import { vEnter } from "../motion";
 import { clearLyricsCache } from "../lyrics";
@@ -21,6 +21,7 @@ const BITRATES = [
 ];
 const REFRESH_INTERVALS = [{ value: 0, label: "なし" }, { value: 5, label: "5分" }, { value: 15, label: "15分" }, { value: 30, label: "30分" }, { value: 60, label: "60分" }];
 const BLUR_LEVELS: { value: BlurLevel; label: string }[] = [{ value: "off", label: "なし" }, { value: "weak", label: "弱" }, { value: "strong", label: "強" }];
+const ROMAJI_POSITIONS: { value: RomajiPosition; label: string }[] = [{ value: "below", label: "下" }, { value: "above", label: "上" }];
 const MOTION_MODES: { value: MotionMode; label: string }[] = [{ value: "system", label: "システム設定に従う" }, { value: "on", label: "オン" }, { value: "off", label: "オフ" }];
 
 const version = ref("");
@@ -103,6 +104,12 @@ const clearCache = async () => {
         </SettingRow>
         <SettingRow title="ぼかし" desc="同期歌詞で、現在の行から離れた行をぼかす強さ。">
           <Segmented :value="settings().lyricsBlur" :options="BLUR_LEVELS" @change="updateSettings({ lyricsBlur: $event })" />
+        </SettingRow>
+        <SettingRow title="ローマ字で表示" desc="日本語の歌詞のヘボン式ローマ字を、原文と並べて表示します。変換は端末内で行います。">
+          <Toggle label="ローマ字で表示" :value="settings().lyricsRomaji" @change="updateSettings({ lyricsRomaji: $event })" />
+        </SettingRow>
+        <SettingRow title="ローマ字の位置" desc="原文に対して、ローマ字を表示する側。">
+          <Segmented :value="settings().lyricsRomajiPosition" :options="ROMAJI_POSITIONS" @change="updateSettings({ lyricsRomajiPosition: $event })" />
         </SettingRow>
         <SettingRow title="歌詞のキャッシュ" desc="一度取得した歌詞は、この端末に保存して再利用します（見つからなかった曲は 7 日後に再確認します）。">
           <button class="rounded-lg bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" @click="clearCache">削除</button>

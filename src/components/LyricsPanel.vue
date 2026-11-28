@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, watch, watchEffect } from "vue";
-import { IconX, IconLoader2, IconMicrophone2Off } from "@tabler/icons-vue";
+import { IconX, IconLoader2, IconMicrophone2Off, IconLanguage } from "@tabler/icons-vue";
 import { current, currentTime, seek } from "../player";
 import { LyricsAnimator, type LyricLine } from "../lyricsAnimator";
 import { setLyricsOpen } from "../store";
 import { fetchLyrics, type Lyrics } from "../lyrics";
-import { settings } from "../settings";
+import { settings, updateSettings } from "../settings";
+import { romanize } from "../romanize";
 import { useResource } from "../reactive";
 import type { Song, SubsonicClient } from "../api";
 
 const INTRO_MIN = 4; // 最初の行までこの秒数以上あれば、冒頭に間奏を表示する
 
-interface ViewLine { time: number; end: number; text: string }
+interface ViewLine { time: number; end: number; text: string; sub?: string }
 
 /** 同期歌詞を表示用に整える: 冒頭の間奏を補い、末尾の空行（終了マーカー）は表示しない */
 function toView(synced: { time: number; text: string }[] | null | undefined): ViewLine[] | null {
@@ -35,7 +36,27 @@ const { data: lyrics, loading, error } = useResource<Song, Lyrics | null>(
 );
 const errorMessage = computed(() => (error.value instanceof Error ? error.value.message : String(error.value)));
 
-const view = computed(() => toView(lyrics.value?.synced));
+// ローマ字表示: 原文の行 → 変換後。変換が済むまでは原文のまま出す
+const romaji = ref<Record<string, string>>({});
+watch([lyrics, () => settings().lyricsRomaji], async ([l, on], _, onCleanup) => {
+  romaji.value = {};
+  if (!l || !on) return;
+  let stale = false;
+  onCleanup(() => { stale = true; });
+  const src = [...new Set([...(l.synced ?? []).map((x) => x.text), ...(l.plain?.split("\n") ?? [])].filter(Boolean))];
+  try {
+    const out = await romanize(src);
+    if (!stale) romaji.value = Object.fromEntries(src.map((s, i) => [s, out[i]]));
+  } catch (e) {
+    console.error("romanize failed", e);
+  }
+}, { immediate: true });
+// 原文と同じ（日本語を含まない）行にはローマ字を添えない
+const romajiOf = (t: string) => { const r = romaji.value[t]; return r && r !== t ? r : undefined; };
+
+const view = computed(() => toView(lyrics.value?.synced)?.map((l) => ({ ...l, sub: romajiOf(l.text) })));
+const plainLines = computed(() => lyrics.value?.plain?.split("\n").map((text) => ({ text, sub: romajiOf(text) })) ?? []);
+const above = computed(() => settings().lyricsRomajiPosition === "above");
 
 // 同期歌詞のアニメーション（再生位置・スクロール・ぼかし・発光）は LyricsAnimator が担当
 const scroller = ref<HTMLDivElement | null>(null);
@@ -80,9 +101,24 @@ const msg = "text-white/40 text-sm";
     <div :class="`${embedded ? 'w-full' : 'w-80'} flex-1 min-h-0 flex flex-col`">
       <div v-if="!embedded" class="flex items-center justify-between px-4 pt-5 pb-3">
         <h2 class="text-xl font-bold">歌詞</h2>
+        <div class="flex items-center gap-1">
+        <button
+          :class="`p-1.5 rounded-full ${settings().lyricsRomaji ? 'text-accent bg-white/10' : 'text-white/60 hover:text-white hover:bg-white/10'}`"
+          title="ローマ字で表示"
+          :aria-pressed="settings().lyricsRomaji"
+          @click="updateSettings({ lyricsRomaji: !settings().lyricsRomaji })"
+        ><IconLanguage :size="18" /></button>
         <button class="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10" @click="setLyricsOpen(false)"><IconX :size="18" /></button>
+        </div>
       </div>
-      <div v-else class="pt-4" />
+      <div v-else class="flex justify-end px-4 pt-3 pb-1">
+        <button
+          :class="`p-1.5 rounded-full ${settings().lyricsRomaji ? 'text-accent bg-white/10' : 'text-white/60 hover:text-white hover:bg-white/10'}`"
+          title="ローマ字で表示"
+          :aria-pressed="settings().lyricsRomaji"
+          @click="updateSettings({ lyricsRomaji: !settings().lyricsRomaji })"
+        ><IconLanguage :size="18" /></button>
+      </div>
       <div ref="scroller" :class="`flex-1 overflow-y-scroll px-4 ${embedded ? '' : 'fade-y-sm'}`">
         <p v-if="!current()" :class="msg">曲を再生すると歌詞が表示されます</p>
         <p v-else-if="!settings().lyricsEnabled" :class="msg">歌詞の取得がオフになっています。設定の「歌詞」から有効にできます。</p>
@@ -98,7 +134,11 @@ const msg = "text-white/40 text-sm";
                 :class="['lyric-line', line.text ? '' : 'interlude']"
                 @click="seek(line.time)"
               >
-                <span v-if="line.text" class="lyric-text">{{ line.text }}</span>
+                <template v-if="line.text">
+                  <span v-if="line.sub && above" class="lyric-text lyric-sub">{{ line.sub }}</span>
+                  <span class="lyric-text">{{ line.text }}</span>
+                  <span v-if="line.sub && !above" class="lyric-text lyric-sub">{{ line.sub }}</span>
+                </template>
                 <div v-else class="lyric-collapse">
                   <span class="lyric-dots"><i /><i /><i /></span>
                 </div>
@@ -106,7 +146,11 @@ const msg = "text-white/40 text-sm";
               <li :class="`${credit} pt-6 pb-[35vh]`">歌詞提供: {{ lyrics.source }}</li>
             </ul>
             <template v-else-if="lyrics.plain">
-              <p class="whitespace-pre-wrap text-[15px] leading-8 text-white/80">{{ lyrics.plain }}</p>
+              <div class="text-[15px] leading-8 text-white/80">
+                <p v-for="(l, i) in plainLines" :key="i" class="whitespace-pre-wrap min-h-8">
+                  <span v-if="l.sub && above" class="block text-white/50 text-[13px] leading-6">{{ l.sub }}</span>{{ l.text }}<span v-if="l.sub && !above" class="block text-white/50 text-[13px] leading-6">{{ l.sub }}</span>
+                </p>
+              </div>
               <p :class="`${credit} pt-4 pb-8`">歌詞提供: {{ lyrics.source }}</p>
             </template>
             <p v-else :class="msg">{{ lyrics.instrumental ? "インストゥルメンタル" : "歌詞がありません" }}</p>

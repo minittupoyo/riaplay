@@ -65,6 +65,7 @@ button:not(:disabled),
   transition: transform 0.3s cubic-bezier(0.61, 1, 0.88, 1);
 }
 .lyric-line.active .lyric-text { transform: none; }
+.lyric-sub { font-size: 0.62em; font-weight: 500; line-height: 1.35; opacity: 0.75; }
 
 /* ---- 再生中画面 ---- */
 /* 背景: ジャケットを大きくぼかし、彩度を上げた画像を重ねて、ゆっくり動かす */
