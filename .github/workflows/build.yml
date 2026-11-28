@@ -82,7 +82,8 @@ jobs:
 
   macos:
     name: macOS (dmg)
-    runs-on: macos-latest
+    # Homebrew の bottle は実行 OS 向けにビルドされるため、対応する最古の OS のランナーを使う
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - run: brew install mpv dylibbundler
