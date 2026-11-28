@@ -6,6 +6,7 @@ import { activeId, hostOf, removeServer, servers, setActive, setServerDialog } f
 import { vEnter } from "../motion";
 import { clearLyricsCache } from "../lyrics";
 import { toast } from "../toast";
+import { clearToken, hasToken, saveToken } from "../listenbrainz";
 import { firstShow } from "../firstShow";
 import SettingRow from "./SettingRow.vue";
 import SettingSection from "./SettingSection.vue";
@@ -24,6 +25,22 @@ const BLUR_LEVELS: { value: BlurLevel; label: string }[] = [{ value: "off", labe
 const DISCORD_STATUSES: { value: DiscordStatus; label: string }[] = [{ value: "app", label: "riaplay" }, { value: "title", label: "曲のタイトル" }, { value: "artist", label: "アーティスト名" }];
 const ROMAJI_POSITIONS: { value: RomajiPosition; label: string }[] = [{ value: "below", label: "下" }, { value: "above", label: "上" }];
 const MOTION_MODES: { value: MotionMode; label: string }[] = [{ value: "system", label: "システム設定に従う" }, { value: "on", label: "オン" }, { value: "off", label: "オフ" }];
+
+const lbToken = ref("");
+const lbBusy = ref(false);
+async function connectListenBrainz() {
+  if (!lbToken.value.trim() || lbBusy.value) return;
+  lbBusy.value = true;
+  try {
+    const user = await saveToken(lbToken.value);
+    lbToken.value = "";
+    toast(user ? `ListenBrainz(${user})に接続しました` : "ListenBrainzに接続しました");
+  } catch (e) {
+    toast(e instanceof Error ? e.message : "接続できませんでした", "error");
+  } finally {
+    lbBusy.value = false;
+  }
+}
 
 const version = ref("");
 onMounted(async () => {
@@ -105,6 +122,19 @@ const clearCache = async () => {
         </SettingRow>
         <SettingRow title="「〇〇を再生中」の表示" desc="Discordのステータスに表示される「〇〇を再生中」の〇〇を選びます。">
           <Segmented :value="settings().discordStatus" :options="DISCORD_STATUSES" @change="updateSettings({ discordStatus: $event })" />
+        </SettingRow>
+      </SettingSection>
+
+      <SettingSection title="ListenBrainz">
+        <SettingRow title="再生履歴を送る" desc="聴いた曲をListenBrainz(listenbrainz.org)に記録します。オンにすると、曲名・アーティスト名・アルバム名・再生時間が送信されます。曲の半分、または4分聴いた時点で記録し、30秒未満の曲は記録しません。">
+          <Toggle label="再生履歴を送る" :value="settings().listenbrainzEnabled" @change="updateSettings({ listenbrainzEnabled: $event })" />
+        </SettingRow>
+        <SettingRow title="ユーザートークン" :desc="hasToken() ? '接続済みです。トークンはこの端末のキーチェーンに保存されています。' : 'ListenBrainzのプロフィール設定(listenbrainz.org/settings)で確認できます。'">
+          <button v-if="hasToken()" class="rounded-lg bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15" @click="clearToken">接続を解除</button>
+          <form v-else class="flex gap-2" @submit.prevent="connectListenBrainz">
+            <input v-model="lbToken" type="password" autocomplete="off" placeholder="トークン" class="w-48 rounded-lg bg-white/10 px-3 py-1.5 text-sm outline-none placeholder:text-white/40 focus:ring-2 focus:ring-accent/70" />
+            <button type="submit" :disabled="lbBusy || !lbToken.trim()" class="rounded-lg bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15 disabled:opacity-50">接続</button>
+          </form>
         </SettingRow>
       </SettingSection>
 

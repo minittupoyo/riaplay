@@ -35,6 +35,8 @@ OSのメディアキーとメディアコントロールにも繋がります。
 DiscordのRich Presenceにも対応しています。Discord Developer Portalで作ったアプリケーションのIDを、ビルド時に環境変数`DISCORD_CLIENT_ID`で渡し、設定の「Discord」でオンにすると有効になります(初期値はオフ)。ローカルのDiscordとIPCで通信するので、Discordを後から起動しても、次の曲の切り替えや再生操作で繋がります。
 カバー画像は、サーバーのURLが認証情報を含むためそのままは使いません。代わりにアーティスト名とアルバム名だけを公開API(iTunes Search、Deezer、MusicBrainz/Cover Art Archive)に送って、ジャケット画像を探します。見つからなければ画像なしで表示します。
 
+ListenBrainz(公式サーバー)への再生履歴の送信にも対応しています。設定でユーザートークンを入力してオンにすると、曲の半分または4分を聴いた時点で記録します(30秒未満の曲は対象外)。送信に失敗した分は端末に溜めて、後で再送します。トークンはOSのキーチェーンに保存します。
+
 ### 歌詞
 
 歌詞は、サーバー(OpenSubsonicの歌詞に対応している場合)、[LRCLIB](https://lrclib.net)、NetEase Cloud Musicの順に探し、同期歌詞が見つかった時点で止めます。LRCLIBとNetEase Cloud Musicには、曲名、アーティスト名、アルバム名、再生時間が送られます。送りたくなければ、設定の「歌詞を取得する」をオフにします。

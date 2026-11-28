@@ -24,6 +24,8 @@ export interface Settings {
   showAudioInfo: boolean;
   /** Discord の Rich Presence に再生中の曲を表示する（曲名などが Discord と公開カバー画像 API に送信される） */
   discordPresence: boolean;
+  /** ListenBrainz に再生履歴を送る（曲名・アーティスト名などが ListenBrainz に送信される） */
+  listenbrainzEnabled: boolean;
   /** Discord のステータス文「〇〇を再生中」に出すもの */
   discordStatus: DiscordStatus;
   /** アクセントカラー（ACCENTS の id） */
@@ -32,7 +34,7 @@ export interface Settings {
   motion: MotionMode;
 }
 
-export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", lyricsRomaji: false, lyricsRomajiPosition: "below", showAudioInfo: false, discordPresence: false, discordStatus: "app", libraryRefreshMinutes: 0, accent: "red", motion: "system" };
+export const DEFAULTS: Settings = { maxBitRate: 0, lyricsEnabled: true, lyricsBlur: "weak", lyricsRomaji: false, lyricsRomajiPosition: "below", showAudioInfo: false, discordPresence: false, listenbrainzEnabled: false, discordStatus: "app", libraryRefreshMinutes: 0, accent: "red", motion: "system" };
 
 export const ACCENTS = [
   { id: "red", name: "レッド", color: "#fa2d48" },
