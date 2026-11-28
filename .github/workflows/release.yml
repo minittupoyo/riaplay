@@ -38,9 +38,11 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: チェックサムを作る
-        working-directory: dist
-        run: sha256sum * > SHA256SUMS.txt
+      - name: ファイルを 1 か所に集めてチェックサムを作る
+        run: |
+          mkdir release
+          find dist -type f -exec mv {} release/ \;
+          cd release && sha256sum * > SHA256SUMS.txt && ls -l
       - name: リリースを作る
         env:
           GH_TOKEN: ${{ github.token }}
@@ -48,5 +50,5 @@ jobs:
           # 1.0.0-beta.1 のようにハイフンがあればプレリリース扱い
           pre=""
           case "$GITHUB_REF_NAME" in *-*) pre="--prerelease" ;; esac
-          gh release create "$GITHUB_REF_NAME" dist/* \
+          gh release create "$GITHUB_REF_NAME" release/* \
             --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes --draft $pre
