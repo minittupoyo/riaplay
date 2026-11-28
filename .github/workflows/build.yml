@@ -81,11 +81,13 @@ jobs:
           if-no-files-found: error
 
   macos:
-    name: macOS (コンパイル確認のみ)
+    name: macOS (dmg)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - run: brew install mpv
+      - run: brew install mpv dylibbundler
+      - name: libmpv を集める
+        run: sh scripts/fetch-libmpv-macos.sh
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - uses: dtolnay/rust-toolchain@stable
@@ -93,8 +95,14 @@ jobs:
         with:
           workspaces: src-tauri
       - run: bun run build
-      # libmpv の同梱設定が未対応（src-tauri/libs/README.md）なので、バンドルは作らずコンパイルが通ることだけ確認する
-      - run: bun run tauri build --no-bundle
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - run: bun run tauri build
         env:
           # Homebrew の libmpv をリンカーが見つけられるようにする
           LIBRARY_PATH: /opt/homebrew/lib
+          DISCORD_CLIENT_ID: ${{ secrets.DISCORD_CLIENT_ID }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riaplay-macos
+          path: src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error

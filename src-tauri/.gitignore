@@ -8,3 +8,6 @@
 
 # Windows: libmpv の DLL とインポートライブラリ（scripts/fetch-libmpv.ps1 で取得する）
 /libs/windows/
+
+# macOS: libmpv と依存ライブラリ（scripts/fetch-libmpv-macos.sh で集める）
+/libs/macos/

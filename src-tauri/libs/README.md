@@ -20,4 +20,10 @@ powershell -File scripts/fetch-libmpv.ps1
 > `cargo test` は、テスト用の実行ファイルにも `windows.manifest`（comctl32 v6）を埋め込む必要があり、`build.rs` が行います。
 
 ## macOS
-`brew install mpv` でビルドできます。配布時は `libmpv.2.dylib` とその依存を `.app` の Frameworks へ入れ、`install_name_tool` で参照先を書き換える必要があります（`dylibbundler` が使えます）。設定はまだ入れていません。
+`brew install mpv dylibbundler` のあと、次のスクリプトで `src-tauri/libs/macos/` に libmpv と依存ライブラリ（約 50 個）を集めます。各 dylib の参照先は `@rpath/` に書き換え済みです。
+
+```sh
+sh scripts/fetch-libmpv-macos.sh
+```
+
+`build.rs` がこのフォルダへリンクし、実行ファイルに `@executable_path/../Frameworks` の rpath を付けます。`tauri.macos.conf.json` が、フォルダの中身を `.app` の `Contents/Frameworks` へ入れます。フォルダが無ければ Homebrew の libmpv にリンクします（`tauri dev` 用）。

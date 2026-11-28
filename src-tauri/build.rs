@@ -15,6 +15,19 @@ fn main() {
         let attrs = tauri_build::Attributes::new().windows_attributes(tauri_build::WindowsAttributes::new_without_app_manifest());
         tauri_build::try_build(attrs).expect("failed to run tauri-build");
     } else {
+        if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+            // scripts/fetch-libmpv-macos.sh が libs/macos に集めた libmpv があれば、それにリンクする。
+            // 無ければ Homebrew の libmpv を使う（開発用）。同梱版は .app の Contents/Frameworks から読む
+            let dir = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("libs").join("macos");
+            if dir.join("libmpv.2.dylib").exists() {
+                println!("cargo:rustc-link-search=native={}", dir.display());
+                println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../Frameworks");
+                if std::env::var("PROFILE").as_deref() == Ok("debug") {
+                    println!("cargo:rustc-link-arg=-Wl,-rpath,{}", dir.display()); // tauri dev は .app にならないので
+                }
+            }
+            println!("cargo:rerun-if-changed={}", dir.display());
+        }
         tauri_build::build()
     }
 }

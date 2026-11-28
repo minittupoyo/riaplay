@@ -28,7 +28,13 @@ sudo apt-get install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3
   librsvg2-dev libssl-dev libdbus-1-dev libmpv-dev patchelf rpm
 ```
 
-**macOS**は`brew install mpv`でコンパイルできます。libmpvを`.app`に入れる設定がまだなく、配布用のバンドルは作れません。
+**macOS**は、libmpvとその依存ライブラリを`src-tauri/libs/macos/`に集めます。ビルド時に`.app`の`Contents/Frameworks`へ同梱されます。集めずにビルドすると、Homebrewのlibmpvにリンクします（開発用）。
+
+```sh
+brew install mpv dylibbundler
+sh scripts/fetch-libmpv-macos.sh
+LIBRARY_PATH=/opt/homebrew/lib bun run tauri build
+```
 
 同梱の詳細は[src-tauri/libs/README.md](src-tauri/libs/README.md)にあります。
 
