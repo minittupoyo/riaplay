@@ -5,15 +5,20 @@ import Spring from "./spring";
  * - 再生位置（rAFごとに audio.currentTime を直接参照）から各行を idle / active / sung に分類
  * - 現在行: バネによる発光 + 拡大
  * - 現在行からの距離に応じたぼかし
- * - 現在行が中央に来るようスクロール（手動操作中は自動追従を止め、止まって 0.75 秒後に復帰）
+ * - 現在行が中央に来るようスクロール。スクロール自体は一瞬で行い、各行を元の位置から動かして時間差（現在行が先、後ろの行ほど遅れる）で収める
+ *   （手動操作中は自動追従を止め、止まって 0.75 秒後に復帰）
  * - 無言行（間奏）は、その行に来たときだけ 3 つのドットで進行を表示（バネで出現・消滅、行の高さも滑らかに開閉）
  */
 
 import { BLUR_STEPS, settings } from "./settings";
+import { animate } from "./motion";
 
 const BLUR_MAX_DISTANCE = 4;
 const RESUME_AFTER = 750; // ms
-const SCROLL_MS = 500;
+const SCROLL_MS = 700; // 各行が定位置に収まるまでの時間
+const STAGGER_MS = 55; // 現在行から 1 行離れるごとの遅れ
+const STAGGER_MAX = 8; // 遅れを付ける行数の上限
+const SCROLL_EASE = "cubic-bezier(.3,.7,.2,1)";
 const INTERLUDE_EXIT = 0.4; // 間奏の終了の何秒前から消え始める（行も同時に閉じ始める）
 
 export interface LyricLine {
@@ -52,11 +57,12 @@ export class LyricsAnimator {
   private userIdle = false;
   private timer = 0;
   private ignoreScrollUntil = 0;
-  private anim: { from: number; to: number; start: number } | null = null;
+  private shifts: (Animation | undefined)[];
 
   constructor(private scroller: HTMLElement, private lines: LyricLine[], private getTime: () => number) {
     this.states = lines.map(() => "idle");
     this.blurs = lines.map(() => -1);
+    this.shifts = lines.map(() => undefined);
     lines.forEach((l, i) => {
       if (l.interlude)
         this.interludes.set(i, {
@@ -76,6 +82,7 @@ export class LyricsAnimator {
 
   destroy() {
     cancelAnimationFrame(this.raf);
+    this.shifts.forEach((a) => a?.cancel());
     clearTimeout(this.timer);
     this.scroller.removeEventListener("wheel", this.onUser);
     this.scroller.removeEventListener("touchstart", this.onUser);
@@ -92,7 +99,6 @@ export class LyricsAnimator {
     this.onUser();
   };
   private onUser = () => {
-    this.anim = null;
     if (!this.blocked) {
       this.blocked = true;
       this.scroller.classList.add("user-scrolling"); // ぼかしを解除
@@ -129,7 +135,6 @@ export class LyricsAnimator {
     if (now < this.settleUntil && !this.blocked) this.retarget();
     if (a >= 0) this.updateActive(a, t, dt, immediate);
 
-    if (this.anim) this.stepScroll(now);
     this.raf = requestAnimationFrame(this.tick);
   };
 
@@ -254,11 +259,18 @@ export class LyricsAnimator {
     let to: number;
     if (line) {
       const sr = this.scroller.getBoundingClientRect(), er = line.li.getBoundingClientRect();
-      to = this.scroller.scrollTop + (er.top - sr.top) - this.scroller.clientHeight / 2 + er.height / 2;
+      // 時間差アニメーション中の ty は見た目だけのずれなので、レイアウト上の位置から外して測る
+      to = this.scroller.scrollTop + (er.top - this.shiftOf(line.li) - sr.top) - this.scroller.clientHeight / 2 + er.height / 2;
     } else {
       to = this.states[0] === "sung" ? max : 0;
     }
     return clamp(to, 0, max);
+  }
+
+  /** 行の高さが変わったあとに、現在行を中央へ取り直す（動かさずに即座に） */
+  relayout() {
+    this.shifts.forEach((a) => a?.cancel());
+    this.scrollToActive(true);
   }
 
   private scrollToActive(instant: boolean) {
@@ -268,27 +280,44 @@ export class LyricsAnimator {
       if (!this.userIdle || !line || !this.inView(line.li)) return;
       this.unblock();
     }
-    const to = this.computeTarget();
-    if (instant) {
-      this.anim = null;
-      this.setScrollTop(to);
-    } else if (Math.abs(to - this.scroller.scrollTop) >= 1) {
-      this.anim = { from: this.scroller.scrollTop, to, start: performance.now() };
-    }
+    this.scrollTo(this.computeTarget(), !instant);
   }
 
-  /** 間奏行などの高さが変化している間、スクロール先を追従させる */
+  /** 間奏行などの高さが変化している間、スクロール先を追従させる（各行の動きは既存の時間差に任せる） */
   private retarget() {
-    const to = this.computeTarget();
-    if (this.anim) this.anim.to = to;
-    else if (Math.abs(to - this.scroller.scrollTop) >= 1) this.anim = { from: this.scroller.scrollTop, to, start: performance.now() };
+    this.scrollTo(this.computeTarget(), false);
   }
 
-  private stepScroll(now: number) {
-    const a = this.anim!;
-    const k = Math.min(1, (now - a.start) / SCROLL_MS);
-    this.setScrollTop(a.from + (a.to - a.from) * (1 - Math.pow(1 - k, 3))); // easeOutCubic
-    if (k >= 1) this.anim = null;
+  /** 現在の ty（時間差アニメーションで付いている見た目のずれ）。レイアウトには影響しない */
+  private shiftOf(el: HTMLElement) {
+    const t = getComputedStyle(el).transform;
+    return t && t !== "none" ? new DOMMatrixReadOnly(t).m42 : 0;
+  }
+
+  /** スクロールは即座に行い、見えている行を元の位置から時間差で定位置へ動かす */
+  private scrollTo(to: number, staggered: boolean) {
+    const d = to - this.scroller.scrollTop;
+    if (Math.abs(d) < 1) return;
+    const sr = this.scroller.getBoundingClientRect();
+    if (!staggered || Math.abs(d) >= sr.height * 1.5) return this.setScrollTop(to); // 追従中・大きく飛ぶときは動かさずに切り替える
+    // スクロールで layout が変わる前に、動いている行の現在のずれを読み取り、そこから繋ぐ
+    const starts = this.shifts.map((a, i) => (a ? this.shiftOf(this.lines[i].li) : 0));
+    this.setScrollTop(to);
+    this.shifts.forEach((a) => a?.cancel());
+    const ref = this.active >= 0 ? this.active : this.lastActive;
+    const lo = sr.top - 40, hi = sr.bottom + 40;
+    this.lines.forEach((l, i) => {
+      const r = l.li.getBoundingClientRect(); // 定位置（アニメーションは取り消し済み）
+      const visible = (r.bottom > lo && r.top < hi) || (r.bottom + d > lo && r.top + d < hi); // 動かす前か後に見える行
+      if (!visible) { this.shifts[i] = undefined; return; }
+      // 進む向きに対して、現在行が先頭で、その後ろの行ほど遅れて動く
+      const lag = d > 0 ? Math.max(0, i - ref) : Math.max(0, ref - i);
+      this.shifts[i] = animate(l.li, [{ transform: `translateY(${d + starts[i]}px)` }, { transform: "none" }], {
+        duration: SCROLL_MS,
+        delay: Math.min(lag, STAGGER_MAX) * STAGGER_MS,
+        easing: SCROLL_EASE,
+      });
+    });
   }
 
   private setScrollTop(y: number) {

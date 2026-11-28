@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, watchEffect } from "vue";
-import { IconX, IconLoader2, IconMicrophone2Off, IconLanguage } from "@tabler/icons-vue";
+import { IconX, IconMicrophone2Off, IconLanguage } from "@tabler/icons-vue";
 import { current, currentTime, seek } from "../player";
 import { LyricsAnimator, type LyricLine } from "../lyricsAnimator";
 import { setLyricsOpen } from "../store";
@@ -10,6 +10,7 @@ import { romanize } from "../romanize";
 import { useResource } from "../reactive";
 import type { Song, SubsonicClient } from "../api";
 
+const SKELETON = ["72%", "55%", "84%", "40%", "66%", "78%", "50%", "70%"]; // 取得中に出す仮の行の幅
 const INTRO_MIN = 4; // 最初の行までこの秒数以上あれば、冒頭に間奏を表示する
 
 interface ViewLine { time: number; end: number; text: string; sub?: string }
@@ -54,7 +55,9 @@ watch([lyrics, () => settings().lyricsRomaji], async ([l, on], _, onCleanup) => 
 // 原文と同じ（日本語を含まない）行にはローマ字を添えない
 const romajiOf = (t: string) => { const r = romaji.value[t]; return r && r !== t ? r : undefined; };
 
-const view = computed(() => toView(lyrics.value?.synced)?.map((l) => ({ ...l, sub: romajiOf(l.text) })));
+// アニメーターは原文だけに依存させ、ローマ字の切り替えでは作り直さない（作り直しを待たずに再計算できるように）
+const baseView = computed(() => toView(lyrics.value?.synced));
+const view = computed(() => baseView.value?.map((l) => ({ ...l, sub: romajiOf(l.text) })));
 const plainLines = computed(() => lyrics.value?.plain?.split("\n").map((text) => ({ text, sub: romajiOf(text) })) ?? []);
 const above = computed(() => settings().lyricsRomajiPosition === "above");
 
@@ -62,7 +65,7 @@ const above = computed(() => settings().lyricsRomajiPosition === "above");
 const scroller = ref<HTMLDivElement | null>(null);
 let animator: LyricsAnimator | undefined;
 watchEffect((onCleanup) => {
-  const v = view.value;
+  const v = baseView.value;
   const sc = scroller.value;
   if (!v?.length || !sc) return;
   let dead = false;
@@ -85,7 +88,9 @@ watchEffect((onCleanup) => {
   queueMicrotask(build);
   onCleanup(() => { dead = true; animator?.destroy(); animator = undefined; });
 }, { flush: "post" });
-watch(() => settings().lyricsBlur, () => animator?.applyBlurs()); // ぼかし設定の変更を即反映
+watch(() => settings().lyricsBlur, () => animator?.applyBlurs());
+// ローマ字の表示・位置を変えると行の高さが変わるので、DOM の更新直後にスクロール位置を取り直す
+watch([romaji, () => settings().lyricsRomaji, () => settings().lyricsRomajiPosition], () => animator?.relayout(), { flush: "post" }); // ぼかし設定の変更を即反映
 // 曲が変わったら先頭へ戻す
 watch(() => current()?.id, () => scroller.value?.scrollTo({ top: 0 }));
 
@@ -123,7 +128,9 @@ const msg = "text-white/40 text-sm";
         <p v-if="!current()" :class="msg">曲を再生すると歌詞が表示されます</p>
         <p v-else-if="!settings().lyricsEnabled" :class="msg">歌詞の取得がオフになっています。設定の「歌詞」から有効にできます。</p>
         <template v-else>
-          <div v-if="loading" class="flex items-center gap-2 text-white/50 text-sm"><IconLoader2 :size="16" class="animate-spin" />取得中…</div>
+          <div v-if="loading" class="pt-2" role="status" aria-label="歌詞を取得中">
+            <div v-for="(w, i) in SKELETON" :key="i" class="lyric-skel"><span class="lyric-skel-bar" :style="{ width: w, animationDelay: `${i * 90}ms` }" /></div>
+          </div>
           <p v-if="error" class="text-accent text-sm">取得に失敗しました: {{ errorMessage }}</p>
           <template v-if="!loading && !error">
             <div v-if="!lyrics" class="flex flex-col items-center gap-2 mt-16 text-white/40"><IconMicrophone2Off :size="32" /><p class="text-sm">歌詞が見つかりません</p></div>

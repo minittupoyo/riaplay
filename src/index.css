@@ -58,6 +58,18 @@ button:not(:disabled),
 .lyric-scroll:not(.auto-scrolling) .lyric-line:not(.active):hover { filter: none !important; }
 .user-scrolling .lyric-line:not(.active) { filter: none !important; }
 
+/* 取得中のスケルトン（実際の行と同じ大きさ・余白にして、表示が切り替わってもずれないようにする） */
+.lyric-skel { padding: 0.45rem 0; font-size: 1.45rem; line-height: 1.2; }
+.np-lyrics .lyric-skel { font-size: clamp(1.9rem, 3.4vw, 3.2rem); padding: 1rem 0; line-height: 1.25; }
+.lyric-skel-bar {
+  display: block;
+  height: 1em;
+  border-radius: 0.4em;
+  background: linear-gradient(90deg, rgba(255,255,255,.08) 25%, rgba(255,255,255,.18) 50%, rgba(255,255,255,.08) 75%) 0 0 / 200% 100%;
+  animation: lyric-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes lyric-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+
 .lyric-text {
   display: block;
   white-space: pre-wrap;
