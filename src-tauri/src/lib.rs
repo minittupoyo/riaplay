@@ -45,6 +45,7 @@ async fn secret_delete(key: String) -> Result<(), String> {
 // WebKit 任せの Media Session だとシークなどが効かないので、souvlaki で直接公開する。
 // OS からの操作は "media-control" イベントとしてフロントへ渡し、フロント側で再生を操作する。
 mod audio;
+mod discord;
 mod download;
 use audio::Audio;
 use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig, SeekDirection};
@@ -140,6 +141,7 @@ fn media_playback(state: tauri::State<Media>, status: String, position: f64) {
 pub fn run() {
     tauri::Builder::default()
         .manage(download::Downloads::default())
+        .manage(discord::Discord::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
         .setup(|app| {
@@ -154,7 +156,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![secret_set, secret_get, secret_delete, media_update, media_playback, audio_load, audio_pause, audio_seek, audio_stop, audio_volume, audio_mute, download::download_file, download::download_cancel, download::download_delete])
+        .invoke_handler(tauri::generate_handler![secret_set, secret_get, secret_delete, media_update, media_playback, discord::discord_update, discord::discord_clear, audio_load, audio_pause, audio_seek, audio_stop, audio_volume, audio_mute, download::download_file, download::download_cancel, download::download_delete])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

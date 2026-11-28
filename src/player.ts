@@ -6,6 +6,7 @@ import type { Song, SubsonicClient } from "./api";
 import { settings } from "./settings";
 import { createEngine, type AudioInfo, type Engine } from "./engine";
 import { downloadedPath } from "./downloads";
+import { publicCover } from "./publicCover";
 
 export type RepeatMode = "off" | "all" | "one";
 
@@ -265,7 +266,21 @@ export function moveInQueue(from: number, to: number) {
 const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 if (inTauri) {
   const status = () => (!current() ? "stopped" : playing() ? "playing" : "paused");
-  const sendPlayback = () => { void invoke("media_playback", { status: status(), position: currentTime() }).catch(() => {}); };
+  const sendDiscord = async () => {
+    const s = current();
+    if (!s) { void invoke("discord_clear").catch(() => {}); return; }
+    const pos = currentTime(), isPlaying = playing();
+    const coverUrl = await publicCover(s.artist, s.album);
+    if (current()?.id !== s.id) return; // 検索中に曲が変わったら捨てる
+    void invoke("discord_update", {
+      title: s.title, artist: s.artist, album: s.album, coverUrl,
+      duration: s.duration ?? 0, position: pos, playing: isPlaying,
+    }).catch(() => {});
+  };
+  const sendPlayback = () => {
+    void invoke("media_playback", { status: status(), position: currentTime() }).catch(() => {});
+    void sendDiscord();
+  };
 
   afterSeek = sendPlayback;
   void listen<{ kind: string; dir?: number; secs?: number }>("media-control", ({ payload: p }) => {
