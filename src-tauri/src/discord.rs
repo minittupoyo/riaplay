@@ -8,7 +8,9 @@ use std::{
 };
 
 /// Discord Developer Portal で作成したアプリケーションID。ビルド時に環境変数で渡す（未設定なら無効）
-const CLIENT_ID: Option<&str> = option_env!("DISCORD_CLIENT_ID");
+fn client_id() -> Option<&'static str> {
+    option_env!("DISCORD_CLIENT_ID").filter(|s| !s.is_empty()) // CI で変数が未設定のときは空文字で渡ってくる
+}
 
 #[derive(Default)]
 pub struct Discord(Mutex<Option<DiscordIpcClient>>);
@@ -17,7 +19,7 @@ impl Discord {
     /// 接続していなければ繋ぐ。Discord が起動していないときは None
     fn client<'a>(slot: &'a mut Option<DiscordIpcClient>) -> Option<&'a mut DiscordIpcClient> {
         if slot.is_none() {
-            let mut c = DiscordIpcClient::new(CLIENT_ID?);
+            let mut c = DiscordIpcClient::new(client_id()?);
             c.connect().ok()?;
             *slot = Some(c);
         }

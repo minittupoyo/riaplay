@@ -1,0 +1,52 @@
+name: release
+
+# v1.2.3 のようなタグを push すると、ビルドしてドラフトのリリースを作る。
+# 内容を確認してから、GitHub 上で公開する。
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  verify:
+    name: バージョン確認
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: タグとアプリのバージョンが一致しているか
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(jq -r .version package.json)
+          conf=$(jq -r .version src-tauri/tauri.conf.json)
+          cargo=$(grep -m1 '^version' src-tauri/Cargo.toml | cut -d'"' -f2)
+          echo "tag=$tag package.json=$pkg tauri.conf.json=$conf Cargo.toml=$cargo"
+          for v in "$pkg" "$conf" "$cargo"; do
+            [ "$v" = "$tag" ] || { echo "::error::バージョンがタグ($tag)と一致しません"; exit 1; }
+          done
+
+  build:
+    needs: verify
+    uses: ./.github/workflows/build.yml
+
+  publish:
+    name: ドラフトのリリースを作成
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: チェックサムを作る
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt
+      - name: リリースを作る
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 1.0.0-beta.1 のようにハイフンがあればプレリリース扱い
+          pre=""
+          case "$GITHUB_REF_NAME" in *-*) pre="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes --draft $pre
