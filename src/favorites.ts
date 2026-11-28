@@ -1,21 +1,22 @@
-import { createMemo, createRoot, createSignal } from "solid-js";
+import { computed } from "vue";
+import { signal } from "./reactive";
 import type { Album, Artist, Song, SubsonicClient } from "./api";
 
 export type FavKind = "song" | "album" | "artist";
 type Item = Song | Album | Artist;
 
-const [songs, setSongs] = createSignal<Song[]>([]);
-const [albums, setAlbums] = createSignal<Album[]>([]);
-const [artists, setArtists] = createSignal<Artist[]>([]);
+const [songs, setSongs] = signal<Song[]>([]);
+const [albums, setAlbums] = signal<Album[]>([]);
+const [artists, setArtists] = signal<Artist[]>([]);
 export { songs as favSongs, albums as favAlbums, artists as favArtists };
 
-const ids = createRoot(() => ({
-  song: createMemo(() => new Set(songs().map((x) => x.id))),
-  album: createMemo(() => new Set(albums().map((x) => x.id))),
-  artist: createMemo(() => new Set(artists().map((x) => x.id))),
-}));
+const ids = {
+  song: computed(() => new Set(songs().map((x) => x.id))),
+  album: computed(() => new Set(albums().map((x) => x.id))),
+  artist: computed(() => new Set(artists().map((x) => x.id))),
+};
 
-export const isFav = (kind: FavKind, id: string) => ids[kind]().has(id);
+export const isFav = (kind: FavKind, id: string) => ids[kind].value.has(id);
 
 export function clearFavorites() {
   setSongs([]);

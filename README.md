@@ -1,6 +1,6 @@
 # riaplay
 
-Navidrome 向けのデスクトップ音楽プレイヤーです。Tauri 2 と SolidJS で書いていて、音声は libmpv で鳴らします。
+Navidrome 向けのデスクトップ音楽プレイヤーです。Tauri 2 と Vue 3 で書いていて、音声は libmpv で鳴らします。
 
 ![アルバム一覧](screenshots/album_list.png)
 

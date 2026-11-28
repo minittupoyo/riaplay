@@ -1,7 +1,7 @@
 // オフライン再生用のダウンロード。ファイルの取得・削除は Rust 側（download.rs）、
 // どの曲を保存したかの一覧は IndexedDB に持つ。保存済みの曲は、再生時にローカルファイルを使う。
-import { createMemo, createRoot, createSignal } from "solid-js";
-import { createStore } from "solid-js/store";
+import { computed } from "vue";
+import { signal } from "./reactive";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Song, SubsonicClient } from "./api";
@@ -24,7 +24,7 @@ export interface DownloadedSong {
 const keyOf = (serverId: string, songId: string) => `${serverId}:${songId}`;
 const db = openStore("riaplay-downloads", "songs");
 
-const [entries, setEntries] = createSignal<Record<string, DownloadedSong>>({});
+const [entries, setEntries] = signal<Record<string, DownloadedSong>>({});
 /** 保存済みの一覧を読み込み終えたら解決する */
 export const downloadsReady: Promise<void> = downloadsSupported
   ? db.all<DownloadedSong>().then((list) => { setEntries(Object.fromEntries(list.map((e) => [e.key, e]))); })
@@ -40,15 +40,13 @@ export const downloadedPath = (serverId: string, songId: string) => entries()[ke
 export const hasDownloads = (serverId: string | undefined) => Object.values(entries()).some((e) => e.serverId === serverId);
 
 // ジャケット: 保存済みの曲のものはローカルから表示する（サーバーに繋がらなくても出る）
-const covers = createRoot(() =>
-  createMemo(() => {
-    const m = new Map<string, string>();
-    for (const e of Object.values(entries())) if (e.coverPath && e.song.coverArt) m.set(`${e.serverId}:${e.song.coverArt}`, e.coverPath);
-    return m;
-  }),
-);
+const covers = computed(() => {
+  const m = new Map<string, string>();
+  for (const e of Object.values(entries())) if (e.coverPath && e.song.coverArt) m.set(`${e.serverId}:${e.song.coverArt}`, e.coverPath);
+  return m;
+});
 export const localCoverUrl = (serverId: string | undefined, coverId: string): string | undefined => {
-  const p = serverId ? covers().get(`${serverId}:${coverId}`) : undefined;
+  const p = serverId ? covers.value.get(`${serverId}:${coverId}`) : undefined;
   return p ? convertFileSrc(p) : undefined;
 };
 
@@ -62,15 +60,16 @@ export interface Job {
   received: number;
   total: number;
 }
-const [jobs, setJobs] = createStore<Job[]>([]);
+const [jobs, setJobs] = signal<Job[]>([]);
 export { jobs };
+const patchJob = (key: string, patch: Partial<Job>) => setJobs((l) => l.map((j) => (j.key === key ? { ...j, ...patch } : j)));
 
 const MAX_PARALLEL = 2;
 let batch = { done: 0, failed: 0 };
 
 if (downloadsSupported) {
   void listen<{ id: string; received: number; total: number }>("download-progress", ({ payload: p }) => {
-    setJobs((j) => j.key === p.id, { received: p.received, total: p.total });
+    patchJob(p.id, { received: p.received, total: p.total });
   });
 }
 
@@ -84,7 +83,7 @@ const albumCovers = () => {
 function fetchCover(client: SubsonicClient, serverId: string, song: Song): Promise<string | undefined> {
   const coverId = song.coverArt!;
   const k = `${serverId}:${song.albumId ?? coverId}`;
-  const have = (song.albumId && albumCovers().get(k)) || covers().get(`${serverId}:${coverId}`);
+  const have = (song.albumId && albumCovers().get(k)) || covers.value.get(`${serverId}:${coverId}`);
   if (have) return Promise.resolve(have);
   let p = coverInflight.get(k);
   if (!p) {
@@ -100,8 +99,7 @@ function fetchCover(client: SubsonicClient, serverId: string, song: Song): Promi
 async function run(job: Job) {
   const r = await invoke<{ path: string; size: number }>("download_file", { id: job.key, url: job.client.downloadUrl(job.song.id), dir: job.serverId, name: job.song.id });
   const coverPath = job.song.coverArt ? await fetchCover(job.client, job.serverId, job.song) : undefined;
-  // job.song はストアのプロキシで、そのままでは IndexedDB に保存できない（複製に失敗する）。素のオブジェクトにして渡す
-  const entry: DownloadedSong = { key: job.key, serverId: job.serverId, song: JSON.parse(JSON.stringify(job.song)), path: r.path, coverPath, size: r.size, at: Date.now() };
+  const entry: DownloadedSong = { key: job.key, serverId: job.serverId, song: job.song, path: r.path, coverPath, size: r.size, at: Date.now() };
   // 記録に失敗すると、再起動後に「保存した曲なし」になる。黙って進めず、失敗として扱ってファイルも消す
   if ((await db.put(job.key, entry)) === undefined) {
     await invoke("download_delete", { path: r.path }).catch(() => {});
@@ -111,7 +109,7 @@ async function run(job: Job) {
 }
 
 async function start(job: Job) {
-  setJobs((j) => j.key === job.key, "status", "active");
+  patchJob(job.key, { status: "active" });
   try {
     await run(job);
     batch.done++;
@@ -127,15 +125,15 @@ async function start(job: Job) {
 }
 
 function pump() {
-  let active = jobs.filter((j) => j.status === "active").length;
-  for (const j of [...jobs]) {
+  let active = jobs().filter((j) => j.status === "active").length;
+  for (const j of jobs()) {
     if (active >= MAX_PARALLEL) break;
     if (j.status === "queued") {
       active++;
       void start(j);
     }
   }
-  if (!jobs.length && (batch.done || batch.failed)) {
+  if (!jobs().length && (batch.done || batch.failed)) {
     if (batch.done) toast(`${batch.done} 曲をダウンロードしました`);
     batch = { done: 0, failed: 0 };
   }
@@ -148,7 +146,7 @@ export function enqueueDownloads(client: SubsonicClient, songs: Song[]): { added
   let added = 0;
   for (const song of songs) {
     const key = keyOf(serverId, song.id);
-    if (entries()[key] || jobs.some((j) => j.key === key)) continue;
+    if (entries()[key] || jobs().some((j) => j.key === key)) continue;
     setJobs((js) => [...js, { key, serverId, song, client, status: "queued", received: 0, total: 0 }]);
     added++;
   }
@@ -157,12 +155,12 @@ export function enqueueDownloads(client: SubsonicClient, songs: Song[]): { added
 }
 
 export function cancelDownload(key: string) {
-  const j = jobs.find((x) => x.key === key);
+  const j = jobs().find((x) => x.key === key);
   if (!j) return;
   if (j.status === "active") void invoke("download_cancel", { id: key }); // 中止すると run が "cancelled" で失敗し、start が後始末する
   else setJobs((js) => js.filter((x) => x.key !== key));
 }
-export const cancelAllDownloads = () => [...jobs].forEach((j) => cancelDownload(j.key));
+export const cancelAllDownloads = () => jobs().forEach((j) => cancelDownload(j.key));
 
 /** 保存した曲を消す。ジャケットは、使う曲がなくなったときだけ消す */
 export async function removeDownloads(list: DownloadedSong[]) {

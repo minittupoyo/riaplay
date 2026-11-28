@@ -1,4 +1,5 @@
-import { createEffect, createRoot, createSignal } from "solid-js";
+import { watchEffect } from "vue";
+import { signal } from "./reactive";
 
 /** アプリの設定（サーバー接続情報は servers.ts が別に管理する） */
 export type MotionMode = "system" | "on" | "off";
@@ -46,7 +47,7 @@ function load(): Settings {
   }
 }
 
-const [settings, setSettings] = createSignal<Settings>(load());
+const [settings, setSettings] = signal<Settings>(load());
 export { settings };
 
 export function updateSettings(patch: Partial<Settings>) {
@@ -66,15 +67,13 @@ export const motionReduced = () => {
 };
 
 // 設定を DOM に反映する（アクセントカラー・アニメーション無効化）
-createRoot(() => {
-  createEffect(() => {
-    const a = ACCENTS.find((x) => x.id === settings().accent) ?? ACCENTS[0];
-    document.documentElement.style.setProperty("--color-accent", a.color);
-  });
-  const [osReduced, setOsReduced] = createSignal(mq.matches);
-  mq.addEventListener("change", () => setOsReduced(mq.matches));
-  createEffect(() => {
-    const m = settings().motion;
-    document.documentElement.classList.toggle("no-motion", m === "off" || (m === "system" && osReduced()));
-  });
+watchEffect(() => {
+  const a = ACCENTS.find((x) => x.id === settings().accent) ?? ACCENTS[0];
+  document.documentElement.style.setProperty("--color-accent", a.color);
+});
+const [osReduced, setOsReduced] = signal(mq.matches);
+mq.addEventListener("change", () => setOsReduced(mq.matches));
+watchEffect(() => {
+  const m = settings().motion;
+  document.documentElement.classList.toggle("no-motion", m === "off" || (m === "system" && osReduced()));
 });

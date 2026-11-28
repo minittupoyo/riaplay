@@ -1,4 +1,5 @@
-import { batch, createEffect, createRoot, createSignal, on } from "solid-js";
+import { watch, watchEffect } from "vue";
+import { signal } from "./reactive";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Song, SubsonicClient } from "./api";
@@ -8,19 +9,19 @@ import { downloadedPath } from "./downloads";
 
 export type RepeatMode = "off" | "all" | "one";
 
-const [queue, setQueue] = createSignal<Song[]>([]);
-const [index, setIndex] = createSignal(-1);
-const [playing, setPlaying] = createSignal(false);
-const [time, setTime] = createSignal(0);
-const [duration, setDuration] = createSignal(0);
-const [shuffle, setShuffle] = createSignal(localStorage.getItem("riaplay.shuffle") === "1");
-const [repeat, setRepeat] = createSignal<RepeatMode>((localStorage.getItem("riaplay.repeat") as RepeatMode) || "off");
-const [volume, setVolumeSig] = createSignal(Number(localStorage.getItem("riaplay.volume") ?? 1));
-const [muted, setMutedSig] = createSignal(localStorage.getItem("riaplay.muted") === "1");
+const [queue, setQueue] = signal<Song[]>([]);
+const [index, setIndex] = signal(-1);
+const [playing, setPlaying] = signal(false);
+const [time, setTime] = signal(0);
+const [duration, setDuration] = signal(0);
+const [shuffle, setShuffle] = signal(localStorage.getItem("riaplay.shuffle") === "1");
+const [repeat, setRepeat] = signal<RepeatMode>((localStorage.getItem("riaplay.repeat") as RepeatMode) || "off");
+const [volume, setVolumeSig] = signal(Number(localStorage.getItem("riaplay.volume") ?? 1));
+const [muted, setMutedSig] = signal(localStorage.getItem("riaplay.muted") === "1");
 // 再生中ストリームの技術情報（libmpv のときだけ。<audio> フォールバックでは null のまま）
-const [audioInfo, setAudioInfo] = createSignal<AudioInfo | null>(null);
+const [audioInfo, setAudioInfo] = signal<AudioInfo | null>(null);
 // トランスコード中か（設定の最大ビットレートが有効）。load() で更新する
-const [isTranscoded, setIsTranscoded] = createSignal(false);
+const [isTranscoded, setIsTranscoded] = signal(false);
 let client: SubsonicClient | null = null;
 
 // シャッフル用: 再生済みインデックスと戻る用の履歴
@@ -110,12 +111,9 @@ export function playQueue(c: SubsonicClient, songs: Song[], start = 0) {
   client = c;
   played.clear();
   history = [];
-  // まとめて反映する。別々に更新すると、途中で「再生中の曲なし」の状態が一瞬見えて、プレイヤーバーなどが作り直される
-  batch(() => {
-    setIndex(-1);
-    setQueue(songs);
-    load(start);
-  });
+  setIndex(-1);
+  setQueue(songs);
+  load(start);
 }
 
 export const toggle = () => {
@@ -237,12 +235,10 @@ export function clearQueue() {
 export function removeFromQueue(i: number) {
   if (queue().length <= 1) return clearQueue();
   const wasCurrent = i === index();
-  batch(() => {
-    remap((j) => (j === i ? null : j > i ? j - 1 : j));
-    setQueue((q) => q.filter((_, k) => k !== i));
-    if (wasCurrent) load(Math.min(i, queue().length - 1), false);
-    else if (i < index()) setIndex(index() - 1);
-  });
+  remap((j) => (j === i ? null : j > i ? j - 1 : j));
+  setQueue((q) => q.filter((_, k) => k !== i));
+  if (wasCurrent) load(Math.min(i, queue().length - 1), false);
+  else if (i < index()) setIndex(index() - 1);
 }
 
 export function moveInQueue(from: number, to: number) {
@@ -254,16 +250,14 @@ export function moveInQueue(from: number, to: number) {
     return i;
   };
   const cur = index();
-  batch(() => {
-    remap(f);
-    setQueue((q) => {
-      const a = [...q];
-      const [x] = a.splice(from, 1);
-      a.splice(to, 0, x);
-      return a;
-    });
-    if (cur >= 0) setIndex(f(cur));
+  remap(f);
+  setQueue((q) => {
+    const a = [...q];
+    const [x] = a.splice(from, 1);
+    a.splice(to, 0, x);
+    return a;
   });
+  if (cur >= 0) setIndex(f(cur));
 }
 
 // ---- OS 連携（Rust 側の souvlaki 経由。Linux は MPRIS、macOS / Windows は OS のメディアコントロール）----
@@ -286,17 +280,15 @@ if (inTauri) {
     }
   });
 
-  createRoot(() => {
-    createEffect(() => {
-      const s = current();
-      if (!s || !client) return;
-      void invoke("media_update", {
-        title: s.title, artist: s.artist, album: s.album,
-        coverUrl: s.coverArt ? client.coverUrl(s.coverArt, 512) : null,
-        duration: s.duration,
-      }).catch(() => {});
-    });
-    // 曲の切り替え・再生/一時停止のたびに状態と位置を送る（再生中の位置は Rust 側が libmpv の値をそのまま送る）
-    createEffect(on([() => current()?.id, playing], () => sendPlayback()));
+  watchEffect(() => {
+    const s = current();
+    if (!s || !client) return;
+    void invoke("media_update", {
+      title: s.title, artist: s.artist, album: s.album,
+      coverUrl: s.coverArt ? client.coverUrl(s.coverArt, 512) : null,
+      duration: s.duration,
+    }).catch(() => {});
   });
+  // 曲の切り替え・再生/一時停止のたびに状態と位置を送る（再生中の位置は Rust 側が libmpv の値をそのまま送る）
+  watch([() => current()?.id, playing], () => sendPlayback(), { immediate: true });
 }

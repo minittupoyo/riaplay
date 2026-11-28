@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { signal } from "./reactive";
 import { secretDelete, secretGet, secretSet } from "./secrets";
 
 /** 登録済みの Navidrome サーバー（複数登録可）。パスワードは含まない（OS のキーチェーンに保存） */
@@ -49,9 +49,9 @@ function load(): Server[] {
   return [];
 }
 
-const [servers, setServersRaw] = createSignal<Server[]>(load());
+const [servers, setServersRaw] = signal<Server[]>(load());
 const initialActive = localStorage.getItem(ACTIVE_KEY);
-const [activeId, setActiveRaw] = createSignal<string | null>(
+const [activeId, setActiveRaw] = signal<string | null>(
   servers().some((s) => s.id === initialActive) ? initialActive : (servers()[0]?.id ?? null),
 );
 export { servers, activeId };
@@ -143,4 +143,4 @@ export function setActive(id: string) {
 
 // サーバーの追加・編集ダイアログ
 export type ServerDialogState = { mode: "add" } | { mode: "edit"; id: string } | null;
-export const [serverDialog, setServerDialog] = createSignal<ServerDialogState>(null);
+export const [serverDialog, setServerDialog] = signal<ServerDialogState>(null);
