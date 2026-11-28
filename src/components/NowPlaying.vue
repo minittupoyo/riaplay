@@ -28,6 +28,15 @@ defineProps<{ client: SubsonicClient }>();
 type Pane = "lyrics" | "queue";
 const pane = ref<Pane | null>(settings().lyricsEnabled ? "lyrics" : null);
 const togglePane = (p: Pane) => { pane.value = pane.value === p ? null : p; };
+// 閉じるアニメーションの間は中身を残し、終わってから外す（幅 0 の間に歌詞やキューが再計算されないように）
+const PANE_MS = 600;
+const paneShown = ref<Pane | null>(pane.value);
+let paneTimer: ReturnType<typeof setTimeout> | undefined;
+watch(pane, (p) => {
+  clearTimeout(paneTimer);
+  if (p) paneShown.value = p;
+  else paneTimer = setTimeout(() => { paneShown.value = null; }, PANE_MS);
+});
 const pinned = ref(false); // ホバーできない端末では、ジャケットのタップで操作を出し入れする
 // 歌詞/キューの切り替えバー: ポインターが動いたときだけ出し、止まって少し経つと隠す（バーの上にいる間は出したまま）
 const showSwitch = ref(false);
@@ -50,6 +59,7 @@ onMounted(() => window.addEventListener("keydown", onKey));
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", onKey);
   clearTimeout(hideTimer);
+  clearTimeout(paneTimer);
 });
 // 再生が無くなった（キューを空にした・サーバーを切り替えた）ら閉じる
 watch(song, (s) => { if (!s) close(); }, { immediate: true });
@@ -58,6 +68,9 @@ const onCoverClick = (e: MouseEvent) => {
   if (!canHover && !(e.target as HTMLElement).closest("button, [data-keep]")) pinned.value = !pinned.value;
 };
 
+// 幅の変化が落ち着いてから中身を出す（途中の折り返しの揺れを見せない）。消すときは先に消す
+const EASE = "cubic-bezier(.45,.05,.25,1)";
+const paneTransition = computed(() => `flex-grow ${PANE_MS}ms ${EASE}, margin-left ${PANE_MS}ms ${EASE}, opacity ${pane.value ? "300ms ease 200ms" : "150ms ease"}`);
 const round = "rounded-full text-white/90 hover:bg-white/20 active:scale-95 transition";
 const on = (b: boolean) => (b ? "text-white" : "text-white/55");
 </script>
@@ -70,9 +83,12 @@ const on = (b: boolean) => (b ? "text-white" : "text-white/55");
       <IconChevronDown :size="26" />
     </button>
 
-    <div :class="`relative flex-1 min-h-0 flex items-center justify-center gap-[clamp(2rem,5vw,6rem)] px-[clamp(1.5rem,5vw,5rem)] py-8 ${narrow ? 'flex-col' : ''}`">
+    <div :class="`relative flex-1 min-h-0 flex items-center justify-center px-[clamp(1.5rem,5vw,5rem)] py-8 ${narrow ? 'flex-col gap-[clamp(2rem,5vw,6rem)]' : ''}`">
       <!-- 狭い画面で歌詞・キューを出すときは、ジャケットの代わりにそれを出す -->
-      <div v-if="!(narrow && pane)" :class="`flex flex-col items-center justify-center gap-4 min-h-0 ${pane && !narrow ? 'flex-[4] min-w-0' : 'w-full max-w-xl'}`">
+      <div
+        v-if="!(narrow && pane)"
+        :class="`flex flex-col items-center justify-center gap-4 min-h-0 max-w-xl ${narrow ? 'w-full' : 'grow-[4] basis-0 min-w-0'}`"
+      >
         <div
           class="np-cover group relative aspect-square rounded-xl overflow-hidden bg-white/10 shadow-2xl shadow-black/50"
           style="width: min(100%, calc(100vh - 17rem))"
@@ -130,10 +146,19 @@ const on = (b: boolean) => (b ? "text-white" : "text-white/55");
         <NowPlayingTitles :song="song" />
       </div>
 
-      <div v-if="pane" :class="`min-h-0 min-w-0 flex flex-col ${narrow ? 'flex-1 w-full' : 'flex-[6] h-full'}`">
+      <div
+        v-if="narrow ? pane : true"
+        :inert="!pane"
+        :class="narrow
+          ? 'min-h-0 min-w-0 flex flex-col flex-1 w-full'
+          : `min-h-0 min-w-0 h-full flex flex-col overflow-hidden basis-0 ${pane ? 'grow-[6] ml-[clamp(2rem,5vw,6rem)] opacity-100' : 'grow-0 ml-0 opacity-0'}`"
+        :style="narrow ? undefined : { transition: paneTransition }"
+      >
         <NowPlayingTitles v-if="narrow" :song="song" compact />
-        <div v-if="pane === 'lyrics'" class="np-lyrics flex-1 min-h-0 flex flex-col"><LyricsPanel :client="client" embedded /></div>
-        <NowPlayingQueue v-else :client="client" />
+        <Transition name="np-pane" mode="out-in">
+          <div v-if="paneShown === 'lyrics'" key="lyrics" class="np-lyrics flex-1 min-h-0 flex flex-col"><LyricsPanel :client="client" embedded /></div>
+          <NowPlayingQueue v-else-if="paneShown === 'queue'" key="queue" :client="client" />
+        </Transition>
         <!-- ジャケットが無いときの最小限の操作 -->
         <div v-if="narrow" class="flex flex-col gap-2 pt-2">
           <NowPlayingSeekBar :song="song" />

@@ -94,8 +94,13 @@ html.no-motion .np-bg img { animation: none; }
 .slider.np-seek { height: 8px; background: linear-gradient(to right, rgba(255,255,255,.95) var(--p, 0%), rgba(255,255,255,.28) var(--p, 0%)); }
 
 /* 再生中画面の歌詞は、サイドパネルより大きく表示する */
-.np-lyrics .lyric-line { font-size: clamp(1.9rem, 3.4vw, 3.2rem); padding: 0.6rem 0; }
+.np-lyrics .lyric-line { font-size: clamp(1.9rem, 3.4vw, 3.2rem); padding: 1rem 0; line-height: 1.25; }
 .np-lyrics .lyric-dots i { width: 0.9rem; height: 0.9rem; }
+
+/* 歌詞とキューの切り替え */
+.np-pane-enter-active, .np-pane-leave-active { transition: opacity 0.2s ease, transform 0.25s cubic-bezier(.2,.8,.2,1); }
+.np-pane-enter-from { opacity: 0; transform: translateX(24px); }
+.np-pane-leave-to { opacity: 0; transform: translateX(-24px); }
 
 /* 再生中画面の歌詞・キュー: 上下の端を徐々に透明にして、切れ目を目立たなくする（下側は広めにとる） */
 /* 上側は固定の高さにして、同じ高さの余白を中身の先頭に入れる（先頭の項目がフェードに隠れないように） */
